@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
+import { ApiError } from "../utils/apiError.js";
 
 interface CustomError extends Error {
   statusCode?: number;
   code?: number;
   keyValue?: Record<string, any>;
-  name: string;
   path?: string;
   value?: any;
   errors?: Record<string, { message: string }>;
@@ -22,30 +22,45 @@ export const errorHandler = (
 
   let statusCode = err.statusCode || 500;
   let message = err.message || "Internal Server Error";
+  let meta = err instanceof ApiError ? err.meta : null;
 
-  // Mongoose CastError (Invalid MongoDB ID)
-  if (err instanceof mongoose.Error.CastError) {
+  // 1. Check if it's our custom ApiError using instanceof
+  if (err instanceof ApiError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    meta = err.meta;
+  }
+
+  // 2. Handle Mongoose invalid ID
+  else if (err instanceof mongoose.Error.CastError) {
     statusCode = 400;
     message = `Invalid ${err.path}: ${err.value}`;
   }
 
   // Duplicate key error
-  if (err.code === 11000 && err.keyValue) {
+  else if ("code" in err && err.code === 11000 && err.keyValue) {
     statusCode = 400;
-    message = `Duplicate field value entered: ${Object.keys(err.keyValue)}`;
+    message = `Duplicate field value entered: ${Object.keys(err.keyValue).join(", ")}`;
   }
 
-  // Validation error (Mongoose validation)
-  if (err instanceof mongoose.Error.ValidationError && err.errors) {
+  // Mongoose validation error
+  else if (err instanceof mongoose.Error.ValidationError && err.errors) {
     statusCode = 400;
     message = Object.values(err.errors)
       .map((val) => val.message)
       .join(", ");
   }
 
+  // 5. Fallback for generic errors (already defaulted at the top)
+  else {
+    message = err.message || message;
+  }
+
   return res.status(statusCode).json({
     success: false,
     message,
     statusCode,
+    meta,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 };

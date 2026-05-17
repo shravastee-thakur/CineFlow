@@ -6,7 +6,7 @@ export type CreateUserData = Pick<
 >;
 
 export const findByEmail = (email: string): Promise<IUser | null> =>
-  User.findOne({ email }).select("+password");
+  User.findOne({ email }).select("+password").exec();
 
 export const findById = (id: string): Promise<IUser | null> =>
   User.findById(id);

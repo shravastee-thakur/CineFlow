@@ -11,6 +11,7 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import sendMail from "../config/sendMail.js";
+import bcrypt from "bcrypt";
 
 export interface RegisterInput extends CreateUserData {}
 export interface LoginInput {
@@ -23,7 +24,7 @@ export type UserResponse = Omit<IUser, "password" | "comparePassword">;
 
 const OTP_SECRET = process.env.HMAC_SECRET;
 if (!OTP_SECRET) {
-  throw new ApiError(401, "OTP_SECRET environment variable is not defined");
+  throw new ApiError(500, "OTP_SECRET environment variable is not defined");
 }
 
 // hmac hashing
@@ -33,7 +34,7 @@ const hashedOtp = (otp: string): string => {
 
 // Register
 export const register = async (data: RegisterInput): Promise<UserResponse> => {
-  const { name, email, password, role = "user" } = data;
+  const { name, email, password, role } = data;
 
   const existing = await userRepo.findByEmail(email);
   if (existing) {
@@ -131,7 +132,7 @@ export const rotateRefreshToken = async (oldToken: string) => {
   try {
     decoded = verifyRefreshToken(oldToken);
   } catch (error) {
-    throw new ApiError(401, "Invalid or expired refresh token");
+    throw new ApiError(500, "Invalid or expired refresh token");
   }
 
   const user = await userRepo.findById(decoded.id);
@@ -164,7 +165,7 @@ export const forgetPassword = async (email: string) => {
 
   const hmacSecret = process.env.HMAC_SECRET;
   if (!hmacSecret)
-    throw new ApiError(401, "hmacSecret environment variable is not defined");
+    throw new ApiError(500, "hmacSecret environment variable is not defined");
 
   const hashedToken = crypto
     .createHmac("sha256", hmacSecret)
@@ -179,20 +180,43 @@ export const forgetPassword = async (email: string) => {
         <h2>Password Reset</h2>
         <p>Click the link below to verify your account:</p>
         <a href="${resetLink}" style="padding:10px 15px;background:#4f46e5;color:#fff;   border-radius:4px;text-decoration:none;">
-      Verify Email
+        Reset Password
         </a>
-        <p>This link will expire in 5 minutes.</p>
+        <p>This link will expire in 15 minutes.</p>
       `;
 
   await sendMail(email, "Password Reset Request", htmlContent);
 };
 
-// ------x------(logout)-----
-export const logout = async (refreshToken: string) => {
-  if (!refreshToken) return;
+export const resetPassword = async (
+  userId: string,
+  token: string,
+  newPassword: string,
+) => {
+  const hmacSecret = process.env.HMAC_SECRET;
+  if (!hmacSecret)
+    throw new ApiError(500, "hmacSecret environment variable is not defined");
 
-  const decoded = verifyRefreshToken(refreshToken);
-  if (decoded?.id) {
-    await userRepo.updateUser(decoded.id, { refreshToken: "" });
+  const hashedToken = crypto
+    .createHmac("sha256", hmacSecret)
+    .update(token)
+    .digest("hex");
+
+  const storedResetToken = await otpService.getResetToken(userId);
+
+  if (!storedResetToken || storedResetToken !== hashedToken) {
+    throw new ApiError(401, "Invalid or expired reset token");
   }
+
+  await otpService.deleteResetToken(userId);
+
+  const updatedPassword = await bcrypt.hash(newPassword, 10);
+  await userRepo.updateUser(userId, { password: updatedPassword });
+};
+
+// ------x------(logout)-----
+export const logout = async (userId: string) => {
+  if (!userId) return;
+
+  await userRepo.updateUser(userId, { refreshToken: "" });
 };

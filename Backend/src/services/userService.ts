@@ -77,14 +77,14 @@ export const processLoginOtp = async (userEmail: string) => {
 // Verify Otp
 export const verifyUserOtp = async (
   userId: string,
-  userInputOtp: string,
+  otp: string,
 ): Promise<UserResponse> => {
   let user = await userRepo.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
   const storedHash = await otpService.getOtp(user.email);
 
-  if (!storedHash || storedHash !== hashedOtp(userInputOtp)) {
+  if (!storedHash || storedHash !== hashedOtp(otp)) {
     throw new ApiError(401, "Invalid or expired OTP");
   }
 

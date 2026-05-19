@@ -1,8 +1,8 @@
 import { Redis, RedisOptions } from "ioredis";
 import { Queue, QueueOptions } from "bullmq";
 
-// import dotenv from "dotenv";
-// dotenv.config();
+import dotenv from "dotenv";
+dotenv.config();
 
 if (!process.env.IOREDIS_URL) {
   throw new Error("IOREDIS_URL environment variable is not defined");

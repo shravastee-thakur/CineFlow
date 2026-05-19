@@ -5,6 +5,16 @@ import { RegisterInput, LoginInput } from "../services/userService.js";
 import sendMail from "../config/sendMail.js";
 import { ApiError } from "../utils/apiError.js";
 import { sendAuthResponse } from "../helper/sendAuthResponse.js";
+import {
+  loginSchema,
+  registerSchema,
+  verifyOtpSchema,
+  VerifyOtpInput,
+  forgetPasswordSchema,
+  ForgetPasswordInput,
+  resetPasswordSchema,
+  ResetPasswordInput,
+} from "../validators/authValidator.js";
 
 export const register = async (
   req: Request<{}, {}, RegisterInput>,
@@ -12,14 +22,9 @@ export const register = async (
   next: NextFunction,
 ) => {
   try {
-    const { name, email, password, role } = req.body;
+    const validatedData = registerSchema.parse(req.body);
 
-    const user = await userService.register({
-      name,
-      email,
-      password,
-      role,
-    });
+    const user = await userService.register(validatedData as RegisterInput);
 
     logger.info(`New user registered: ${user.email}`);
 
@@ -40,10 +45,12 @@ export const loginStepOne = async (
   next: NextFunction,
 ) => {
   try {
-    const { email, password } = req.body;
-    const user = await userService.loginVerifyCredentials({ email, password });
+    const validatedData = loginSchema.parse(req.body);
+    const user = await userService.loginVerifyCredentials(
+      validatedData as LoginInput,
+    );
 
-    const otp = await userService.processLoginOtp(email);
+    const otp = await userService.processLoginOtp(user.email);
 
     const htmlContent = `
             <p>Login Verification</p>
@@ -52,9 +59,9 @@ export const loginStepOne = async (
             <p>This OTP will expire in 5 minutes.</p>
           `;
 
-    await sendMail(email, "Your 2FA Login OTP", htmlContent);
+    await sendMail(user.email, "Your 2FA Login OTP", htmlContent);
 
-    logger.info(`OTP sent to ${email}`);
+    logger.info(`OTP sent to ${user.email}`);
 
     return res.status(200).json({
       success: true,
@@ -69,12 +76,14 @@ export const loginStepOne = async (
 };
 
 export const verifyLogin = async (
-  req: Request<{}, {}, { userId: string; otp: string }>,
+  req: Request<{}, {}, VerifyOtpInput>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { userId, otp } = req.body;
+    const validatedData = verifyOtpSchema.parse(req.body);
+
+    const { userId, otp } = validatedData;
     if (!userId || !otp) {
       logger.warn("Missing userId or OTP in verifyOtp");
       throw new ApiError(400, "Missing userId or otp");
@@ -117,12 +126,13 @@ export const refreshHandler = async (
 };
 
 export const forgetPassword = async (
-  req: Request<{}, {}, { email: string }>,
+  req: Request<{}, {}, ForgetPasswordInput>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { email } = req.body;
+    const validatedData = forgetPasswordSchema.parse(req.body);
+    const { email } = validatedData;
     await userService.forgetPassword(email);
     logger.info(`Password reset link sent to ${email}`);
 
@@ -137,12 +147,13 @@ export const forgetPassword = async (
 };
 
 export const resetPassword = async (
-  req: Request<{}, {}, { userId: string; token: string; newPassword: string }>,
+  req: Request<{}, {}, ResetPasswordInput>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { userId, token, newPassword } = req.body;
+    const validatedData = resetPasswordSchema.parse(req.body);
+    const { userId, token, newPassword } = validatedData;
     if (!userId || !token || !newPassword)
       throw new ApiError(400, "Missing required fields");
     await userService.resetPassword(userId, token, newPassword);

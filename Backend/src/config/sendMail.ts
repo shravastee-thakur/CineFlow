@@ -1,8 +1,8 @@
 import axios from "axios";
 import { ApiError } from "../utils/apiError.js";
 
-// import dotenv from "dotenv";
-// dotenv.config();
+import dotenv from "dotenv";
+dotenv.config();
 
 const apiKey = process.env.BREVO_API_KEY;
 const senderEmail = process.env.SENDER_EMAIL;

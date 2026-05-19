@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-// --------------------
 // Register Validation
-// --------------------
+
 export const registerSchema = z.object({
   name: z
     .string()
@@ -27,11 +26,10 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-// --------------------
 // OTP Verification Validation
-// --------------------
+
 export const verifyOtpSchema = z.object({
-  userId: z.string().length(24, "Invalid user ID"), // MongoDB ObjectId length
+  userId: z.string().length(24, "Invalid user ID"),
   otp: z
     .string()
     .length(6, "OTP must be 6 digits")
@@ -40,18 +38,16 @@ export const verifyOtpSchema = z.object({
 
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 
-// --------------------
 // Forgot Password Validation
-// --------------------
+
 export const forgetPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
 export type ForgetPasswordInput = z.infer<typeof forgetPasswordSchema>;
 
-// --------------------
 // Reset Password Validation
-// --------------------
+
 export const resetPasswordSchema = z.object({
   userId: z.string().length(24, "Invalid user ID"),
   token: z.string().min(10, "Invalid token"), // matches your crypto.randomBytes(10)

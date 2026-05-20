@@ -84,10 +84,6 @@ export const verifyLogin = async (
     const validatedData = verifyOtpSchema.parse(req.body);
 
     const { userId, otp } = validatedData;
-    if (!userId || !otp) {
-      logger.warn("Missing userId or OTP in verifyOtp");
-      throw new ApiError(400, "Missing userId or otp");
-    }
 
     const user = await userService.verifyUserOtp(userId, otp);
 
@@ -154,8 +150,6 @@ export const resetPassword = async (
   try {
     const validatedData = resetPasswordSchema.parse(req.body);
     const { userId, token, newPassword } = validatedData;
-    if (!userId || !token || !newPassword)
-      throw new ApiError(400, "Missing required fields");
     await userService.resetPassword(userId, token, newPassword);
 
     return res.json({

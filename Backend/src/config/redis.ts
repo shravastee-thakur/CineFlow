@@ -1,5 +1,4 @@
 import { Redis, RedisOptions } from "ioredis";
-import { Queue, QueueOptions } from "bullmq";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,9 +12,3 @@ const redisOptions: RedisOptions = {
 };
 
 export const redis = new Redis(process.env.IOREDIS_URL, redisOptions);
-
-const queueOptions: QueueOptions = {
-  connection: redis,
-};
-
-export const mailQueue = new Queue("mailQueue", queueOptions);

@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
+import { env } from "../config/env.js";
 import arcjet, { shield, detectBot } from "@arcjet/node";
 import { ApiError } from "./apiError.js";
 
@@ -14,7 +13,7 @@ const aj = arcjet({
     shield({ mode: "LIVE" }),
 
     detectBot({
-      mode: process.env.NODE_ENV === "production" ? "LIVE" : "DRY_RUN",
+      mode: env.NODE_ENV === "production" ? "LIVE" : "DRY_RUN",
 
       allow: [
         "CATEGORY:SEARCH_ENGINE", // Googlebot, Bingbot, etc.

@@ -33,18 +33,18 @@ export const authenticate = async (
       throw new ApiError(401, "Unauthorized: Invalid token");
     }
 
-    const user = await userRepo.findById(decoded.id);
-    if (!user) throw new ApiError(404, "User not found");
+    // Trust the cryptographically signed payload.
+    // Do not query the database here.
 
     req.user = {
-      id: user._id.toString(),
-      role: user.role,
+      id: decoded.id,
+      role: decoded.role,
     };
 
     next();
   } catch (error) {
     logger.error(`AuthMiddleware Failure: ${(error as Error).message}`);
-    console.log(error);
+    console.log(error); // Remove during production
     next(error);
   }
 };

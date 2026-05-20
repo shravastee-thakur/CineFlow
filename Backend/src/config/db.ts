@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import { env } from "./env.js";
 import logger from "../utils/logger.js";
 
 export const connectDb = async () => {
   try {
-    const mongoUrl = process.env.MONGO_URL;
+    const mongoUrl = env.MONGO_URL;
 
     if (!mongoUrl) {
       throw new Error("MONGO_URL environment variable is not set");

@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import * as userRepo from "../repositories/userRepo.js";
 import { ApiError } from "../utils/apiError.js";
 import { IUser } from "../models/userModel.js";
@@ -11,7 +12,6 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import sendMail from "../config/sendMail.js";
-import bcrypt from "bcrypt";
 
 export interface RegisterInput extends CreateUserData {}
 export interface LoginInput {
@@ -22,14 +22,9 @@ export interface LoginInput {
 // Defining a return type that explicitly omits sensitive data
 export type UserResponse = Omit<IUser, "password" | "comparePassword">;
 
-const OTP_SECRET = process.env.HMAC_SECRET;
-if (!OTP_SECRET) {
-  throw new ApiError(500, "OTP_SECRET environment variable is not defined");
-}
-
 // hmac hashing
 const hashedOtp = (otp: string): string => {
-  return crypto.createHmac("sha256", OTP_SECRET).update(otp).digest("hex");
+  return crypto.createHmac("sha256", env.HMAC_SECRET).update(otp).digest("hex");
 };
 
 // Register
@@ -82,13 +77,13 @@ export const verifyUserOtp = async (
   let user = await userRepo.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
-  const storedHash = await otpService.getOtp(user.email);
+  const inputHash = hashedOtp(otp);
 
-  if (!storedHash || storedHash !== hashedOtp(otp)) {
+  const isValid = await otpService.consumeOtp(user.email, inputHash);
+
+  if (!isValid) {
     throw new ApiError(401, "Invalid or expired OTP");
   }
-
-  await otpService.deleteOtp(user.email);
 
   if (!user.isVerified) {
     const updatedUser = await userRepo.updateUser(userId, { isVerified: true });
@@ -107,7 +102,6 @@ export const verifyUserOtp = async (
 
 // Access Refresh
 export const createTokensAndSave = async (user: UserResponse) => {
-  // 1. Explicitly convert _id to string for the JWT payload because In Mongoose, user._id is typically a complex ObjectId object, not a primitive string
   const tokenPayload = {
     id: user._id.toString(),
     role: user.role,
@@ -132,7 +126,7 @@ export const rotateRefreshToken = async (oldToken: string) => {
   try {
     decoded = verifyRefreshToken(oldToken);
   } catch (error) {
-    throw new ApiError(500, "Invalid or expired refresh token");
+    throw new ApiError(401, "Invalid or expired refresh token");
   }
 
   const user = await userRepo.findById(decoded.id);
@@ -143,7 +137,14 @@ export const rotateRefreshToken = async (oldToken: string) => {
     .update(oldToken)
     .digest("hex");
 
-  if (!user.refreshToken || user.refreshToken !== hashedRefreshToken) {
+  const storedBuffer = Buffer.from(user.refreshToken, "hex");
+  const hashBuffer = Buffer.from(hashedRefreshToken, "hex");
+
+  const isMatch =
+    storedBuffer.length === hashBuffer.length &&
+    crypto.timingSafeEqual(storedBuffer, hashBuffer);
+
+  if (!isMatch) {
     throw new ApiError(401, "Refresh token mismatch");
   }
 
@@ -163,12 +164,8 @@ export const forgetPassword = async (email: string) => {
 
   const resetToken = crypto.randomBytes(10).toString("hex");
 
-  const hmacSecret = process.env.HMAC_SECRET;
-  if (!hmacSecret)
-    throw new ApiError(500, "hmacSecret environment variable is not defined");
-
   const hashedToken = crypto
-    .createHmac("sha256", hmacSecret)
+    .createHmac("sha256", env.HMAC_SECRET)
     .update(resetToken)
     .digest("hex");
 
@@ -193,25 +190,24 @@ export const resetPassword = async (
   token: string,
   newPassword: string,
 ) => {
-  const hmacSecret = process.env.HMAC_SECRET;
-  if (!hmacSecret)
-    throw new ApiError(500, "hmacSecret environment variable is not defined");
-
   const hashedToken = crypto
-    .createHmac("sha256", hmacSecret)
+    .createHmac("sha256", env.HMAC_SECRET)
     .update(token)
     .digest("hex");
 
-  const storedResetToken = await otpService.getResetToken(userId);
+  // Atomically verify and consume the reset token in Redis
+  const isValid = await otpService.consumeResetToken(userId, hashedToken);
 
-  if (!storedResetToken || storedResetToken !== hashedToken) {
+  if (!isValid) {
     throw new ApiError(401, "Invalid or expired reset token");
   }
 
-  await otpService.deleteResetToken(userId);
+  const user = await userRepo.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
 
-  const updatedPassword = await bcrypt.hash(newPassword, 10);
-  await userRepo.updateUser(userId, { password: updatedPassword });
+  // Assign the raw password and let the model's pre('save') hook do its job.
+  user.password = newPassword;
+  await user.save();
 };
 
 // ------x------(logout)-----

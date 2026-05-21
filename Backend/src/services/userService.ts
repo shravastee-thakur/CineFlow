@@ -1,8 +1,7 @@
 import { env } from "../config/env.js";
 import * as userRepo from "../repositories/userRepo.js";
 import { ApiError } from "../utils/apiError.js";
-import { IUser } from "../models/userModel.js";
-import { CreateUserData } from "../repositories/userRepo.js";
+import { CreateUserData, UserDocument } from "../repositories/userRepo.js";
 import * as otpService from "../services/otpService.js";
 import crypto from "crypto";
 import {
@@ -19,8 +18,30 @@ export interface LoginInput {
   password: string;
 }
 
-// Defining a return type that explicitly omits sensitive data
-export type UserResponse = Omit<IUser, "password" | "comparePassword">;
+// Pure Data Transfer Object. No Mongoose types, no passwords, no refresh tokens.
+export interface UserDTO {
+  _id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Cleanly map a Mongoose document to a plain object
+const mapToDTO = (user: UserDocument): UserDTO => {
+  const obj = user.toObject();
+  return {
+    _id: obj._id.toString(),
+    name: obj.name,
+    email: obj.email,
+    role: obj.role,
+    isVerified: obj.isVerified,
+    createdAt: obj.createdAt!,
+    updatedAt: obj.updatedAt!,
+  };
+};
 
 // hmac hashing
 const hashedOtp = (otp: string): string => {
@@ -28,7 +49,7 @@ const hashedOtp = (otp: string): string => {
 };
 
 // Register
-export const register = async (data: RegisterInput): Promise<UserResponse> => {
+export const register = async (data: RegisterInput): Promise<UserDTO> => {
   const { name, email, password, role } = data;
 
   const existing = await userRepo.findByEmail(email);
@@ -37,18 +58,14 @@ export const register = async (data: RegisterInput): Promise<UserResponse> => {
   }
 
   const newUser = await userRepo.createUser({ name, email, password, role });
-
-  const userObject = newUser.toObject();
-  delete userObject.password;
-
-  return userObject as UserResponse;
+  return mapToDTO(newUser);
 };
 
 // -----x-----(login)------
 // Login verify
 export const loginVerifyCredentials = async (
   data: LoginInput,
-): Promise<UserResponse> => {
+): Promise<UserDTO> => {
   const { email, password } = data;
   const user = await userRepo.findByEmail(email);
   if (!user) throw new ApiError(401, "Invalid credentials");
@@ -56,10 +73,7 @@ export const loginVerifyCredentials = async (
   const match = await user.comparePassword(password);
   if (!match) throw new ApiError(401, "Invalid credentials");
 
-  const userObject = user.toObject();
-  delete userObject.password;
-
-  return userObject as UserResponse;
+  return mapToDTO(user);
 };
 
 // Otp save
@@ -73,7 +87,7 @@ export const processLoginOtp = async (userEmail: string) => {
 export const verifyUserOtp = async (
   userId: string,
   otp: string,
-): Promise<UserResponse> => {
+): Promise<UserDTO> => {
   let user = await userRepo.findById(userId);
   if (!user) throw new ApiError(404, "User not found");
 
@@ -92,16 +106,13 @@ export const verifyUserOtp = async (
     user = updatedUser;
   }
 
-  const userObject = user.toObject();
-  delete userObject.password;
-
-  return userObject as UserResponse;
+  return mapToDTO(user);
 };
 
 // -----x-----(token rotate)--------
 
 // Access Refresh
-export const createTokensAndSave = async (user: UserResponse) => {
+export const createTokensAndSave = async (user: UserDTO) => {
   const tokenPayload = {
     id: user._id.toString(),
     role: user.role,
@@ -148,9 +159,7 @@ export const rotateRefreshToken = async (oldToken: string) => {
     throw new ApiError(401, "Refresh token mismatch");
   }
 
-  const userObject = user.toObject();
-  delete userObject.password;
-  const safeUser = userObject as UserResponse;
+  const safeUser = mapToDTO(user);
 
   const { accessToken, refreshToken } = await createTokensAndSave(safeUser);
 
@@ -171,7 +180,7 @@ export const forgetPassword = async (email: string) => {
 
   await otpService.saveResetToken(user._id.toString(), hashedToken);
 
-  const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user._id}`;
+  const resetLink = `${env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user._id}`;
 
   const htmlContent = `
         <h2>Password Reset</h2>

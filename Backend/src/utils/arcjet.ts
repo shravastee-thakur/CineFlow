@@ -2,7 +2,7 @@ import { env } from "../config/env.js";
 import arcjet, { shield, detectBot } from "@arcjet/node";
 import { ApiError } from "./apiError.js";
 
-const arcjetSecret = process.env.ARCJET_KEY;
+const arcjetSecret = env.ARCJET_KEY;
 if (!arcjetSecret) {
   throw new ApiError(500, "arcjetSecret environment variable is not defined");
 }

@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import { Request, Response, NextFunction } from "express";
 import * as userService from "../services/userService.js";
 import logger from "../utils/logger.js";
@@ -178,8 +179,8 @@ export const logout = async (
     return res
       .clearCookie("refreshToken", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: env.NODE_ENV === "production",
+        sameSite: env.NODE_ENV === "production" ? "none" : "lax",
       })
       .status(200)
       .json({ success: true, message: "Logged out successfully" });

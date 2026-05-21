@@ -1,17 +1,26 @@
 import mongoose, { Document, Schema, Model } from "mongoose";
 import bcrypt from "bcrypt";
 
-export interface IUser extends Document {
+// 1. Raw data interface. Strictly for data shape and DTOs.
+export interface IUser {
   name: string;
   email: string;
   password: string;
   role: "admin" | "user";
   refreshToken: string;
   isVerified: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IUserMethods {
   comparePassword(plainPassword: string): Promise<boolean>;
 }
 
-const userSchema: Schema<IUser> = new Schema(
+// 3. Combine them to create the full Model type.
+type UserModel = Model<IUser, {}, IUserMethods>;
+
+const userSchema = new Schema<IUser, UserModel>(
   {
     name: {
       type: String,
@@ -44,18 +53,15 @@ const userSchema: Schema<IUser> = new Schema(
   { timestamps: true },
 );
 
-userSchema.pre<IUser>("save", async function (this: IUser) {
+userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.comparePassword = async function (
-  this: IUser,
-  plainPassword: string,
-) {
+userSchema.methods.comparePassword = async function (plainPassword: string) {
   return bcrypt.compare(plainPassword, this.password);
 };
 
-const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
+const User = mongoose.model<IUser, UserModel>("User", userSchema);
 export default User;

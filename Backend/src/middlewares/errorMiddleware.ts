@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
@@ -61,6 +62,6 @@ export const errorHandler = (
     message,
     statusCode,
     meta,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    stack: env.NODE_ENV === "development" ? err.stack : undefined,
   });
 };

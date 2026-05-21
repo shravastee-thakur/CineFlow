@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import { Response } from "express";
 import { UserResponse } from "../services/userService.js";
 
@@ -15,8 +16,8 @@ export const sendAuthResponse = (
   return res
     .cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     })
     .status(200)

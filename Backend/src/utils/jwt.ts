@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApiError } from "./apiError.js";
 
@@ -6,12 +7,12 @@ export interface TokenPayload extends JwtPayload {
   role: string;
 }
 
-const accessSecret = process.env.ACCESS_SECRET;
+const accessSecret = env.ACCESS_SECRET;
 if (!accessSecret) {
   throw new ApiError(401, "accessSecret environment variable is not defined");
 }
 
-const refreshSecret = process.env.REFRESH_SECRET;
+const refreshSecret = env.REFRESH_SECRET;
 if (!refreshSecret) {
   throw new ApiError(401, "refreshSecret environment variable is not defined");
 }

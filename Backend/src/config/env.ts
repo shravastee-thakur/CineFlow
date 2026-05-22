@@ -19,6 +19,10 @@ const envSchema = z.object({
   BREVO_API_KEY: z.string().min(1),
   SENDER_EMAIL: z.string().email("SENDER_EMAIL must be a valid email address"),
   ARCJET_KEY: z.string().min(1),
+
+  CLOUDINARY_NAME: z.string().min(1),
+  CLOUDINARY_API_KEY: z.string().min(1),
+  CLOUDINARY_API_SECRET: z.string().min(1),
 });
 
 const _env = envSchema.safeParse(process.env);

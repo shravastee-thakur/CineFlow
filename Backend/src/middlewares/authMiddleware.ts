@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../utils/apiError.js";
 import { verifyAccessToken } from "../utils/jwt.js";
-import * as userRepo from "../repositories/userRepo.js";
 import logger from "../utils/logger.js";
 
 declare global {

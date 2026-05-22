@@ -43,11 +43,6 @@ const mapToDTO = (user: UserDocument): UserDTO => {
   };
 };
 
-// hmac hashing
-const hashedOtp = (otp: string): string => {
-  return crypto.createHmac("sha256", env.HMAC_SECRET).update(otp).digest("hex");
-};
-
 // Register
 export const register = async (data: RegisterInput): Promise<UserDTO> => {
   const { name, email, password, role } = data;
@@ -74,6 +69,11 @@ export const loginVerifyCredentials = async (
   if (!match) throw new ApiError(401, "Invalid credentials");
 
   return mapToDTO(user);
+};
+
+// hmac hashing
+const hashedOtp = (otp: string): string => {
+  return crypto.createHmac("sha256", env.HMAC_SECRET).update(otp).digest("hex");
 };
 
 // Otp save

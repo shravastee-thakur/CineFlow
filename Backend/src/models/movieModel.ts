@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
+import mongoose, { Schema, Model } from "mongoose";
 
 export interface IMovie {
   title: string;
@@ -13,6 +13,7 @@ export interface IMovie {
   };
   rating: number;
   format: string[];
+  status: "coming_soon" | "now_showing" | "ended";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -59,6 +60,12 @@ const movieSchema = new Schema<IMovie>(
     format: {
       type: [String],
       default: ["2D"],
+    },
+    status: {
+      type: String,
+      enum: ["coming_soon", "now_showing", "ended"],
+      default: "coming_soon",
+      index: true,
     },
   },
   { timestamps: true },

@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 import { sanitizeMiddleware } from "./middlewares/sanitize.js";
 import userRoutes from "./routes/userRoutes.js";
+import movieRoutes from "./routes/movieRoutes.js";
 
 const app = express();
 
@@ -28,6 +29,10 @@ app.use(sanitizeMiddleware);
 // Routes
 app.use("/api/v1/users", userRoutes);
 // http://localhost:5000/api/v1/users/register
+
+app.use("/api/v1/movies", movieRoutes);
+// http://localhost:5000/api/v1/movies/createMovie
+
 app.use(errorHandler);
 
 export default app;

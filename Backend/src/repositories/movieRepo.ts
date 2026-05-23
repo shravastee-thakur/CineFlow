@@ -31,7 +31,7 @@ export const findAllMovies = async (
 ): Promise<MovieDocument[]> => {
   const skip = (page - 1) * limit;
 
-  return Movie.find({ $in: ["coming_soon", "now_showing"] })
+  return Movie.find({ status: { $in: ["coming_soon", "now_showing"] } })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)

@@ -119,7 +119,21 @@ export const updateMovie = async (
   if (fileBuffer) {
     if (movie?.posterImage?.public_id) {
       try {
-        await cloudinary.uploader.destroy(movie.posterImage.public_id);
+        // invalidate true to clear the CDN cache immediately
+        const deleteResult = await cloudinary.uploader.destroy(
+          movie.posterImage.public_id,
+          { invalidate: true },
+        );
+
+        logger.info(
+          `Cloudinary delete result: ${JSON.stringify(deleteResult)}`,
+        );
+
+        if (deleteResult.result !== "ok") {
+          logger.warn(
+            `Failed to delete image. Public ID: ${movie.posterImage.public_id}. Result: ${deleteResult.result}`,
+          );
+        }
       } catch (cloudinaryError) {
         logger.error(
           `Error deleting old image from Cloudinary: ${(cloudinaryError as Error).message}`,

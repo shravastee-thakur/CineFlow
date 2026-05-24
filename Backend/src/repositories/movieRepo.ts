@@ -39,7 +39,9 @@ export const findAllMovies = async (
 };
 
 export const countAllMovies = (): Promise<number> => {
-  return Movie.countDocuments().exec();
+  return Movie.countDocuments({
+    status: { $in: ["coming_soon", "now_showing"] },
+  }).exec();
 };
 
 export const findMovieById = async (
@@ -55,7 +57,10 @@ export const findMovieByTitle = async (
     text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
   const safeTitle = escapeRegex(title);
-  return Movie.findOne({ title: new RegExp(`^${safeTitle}$`, "i") }).exec();
+  return Movie.findOne({
+    title: new RegExp(`^${safeTitle}$`, "i"),
+    status: { $in: ["coming_soon", "now_showing"] },
+  }).exec();
 };
 
 export const findTopMovieByRating = async (
@@ -72,10 +77,4 @@ export const updateMovie = async (
     new: true,
     runValidators: true,
   }).exec();
-};
-
-export const deleteMovie = async (
-  MovieId: string,
-): Promise<MovieDocument | null> => {
-  return Movie.findByIdAndDelete(MovieId).exec();
 };

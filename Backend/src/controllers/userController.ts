@@ -32,7 +32,7 @@ export const register = async (
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
-      user,
+      data: user,
     });
   } catch (error) {
     logger.error(`Register error: ${(error as Error).message}`);

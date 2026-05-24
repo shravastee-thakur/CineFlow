@@ -84,7 +84,6 @@ export const findAllMovies = async (
   const movies = await movieRepo.findAllMovies(page, limit);
 
   const totalPages = Math.ceil(totalMovies / limit);
-  if (!movies) throw new ApiError(404, "Movie not found");
 
   return {
     movies: movies.map(mapToMovieDTO),
@@ -152,3 +151,5 @@ export const updateMovie = async (
 
   return mapToMovieDTO(movie);
 };
+
+

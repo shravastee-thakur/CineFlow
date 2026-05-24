@@ -23,11 +23,13 @@ export const createMovie = async (
     const fileBuffer = req.file?.buffer;
 
     const movie = await movieService.createMovie(validatedData, fileBuffer);
-    logger.info(`Movie created successfully`);
+    logger.info(`Movie created successfully : ${movie.title}`);
 
-    return res
-      .status(201)
-      .json({ success: true, message: "Movie created successfully", movie });
+    return res.status(201).json({
+      success: true,
+      message: "Movie created successfully",
+      data: movie,
+    });
   } catch (error) {
     logger.error(`Create Movie error: ${(error as Error).message}`);
     next(error);
@@ -48,7 +50,7 @@ export const getAllMovies = async (
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
 
     const movies = await movieService.findAllMovies(page, limit);
-    return res.status(200).json({ success: true, movies });
+    return res.status(200).json({ success: true, data: movies });
   } catch (error) {
     logger.error(`Get all Movies error: ${(error as Error).message}`);
     next(error);
@@ -63,7 +65,7 @@ export const getMovieById = async (
   try {
     const movieId = req.params.id as string;
     const movie = await movieService.findMovieById(movieId);
-    return res.status(200).json({ success: true, movie });
+    return res.status(200).json({ success: true, data: movie });
   } catch (error) {
     logger.error(`Get Movie by id error: ${(error as Error).message}`);
     next(error);
@@ -80,7 +82,7 @@ export const getTopMovieByRating = async (
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
 
     const movies = await movieService.findTopMovieByRating(limit);
-    return res.status(200).json({ success: true, movies });
+    return res.status(200).json({ success: true, data: movies });
   } catch (error) {
     logger.error(`Get top movie by rating error: ${(error as Error).message}`);
     next(error);
@@ -106,7 +108,11 @@ export const updateMovie = async (
 
     return res
       .status(200)
-      .json({ success: true, message: "Movie updated successfuly", movie });
+      .json({
+        success: true,
+        message: "Movie updated successfuly",
+        data: movie,
+      });
   } catch (error) {
     logger.error(`Update movie error: ${(error as Error).message}`);
     next(error);

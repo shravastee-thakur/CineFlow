@@ -45,9 +45,9 @@ export const countAllMovies = (): Promise<number> => {
 };
 
 export const findMovieById = async (
-  MovieId: string,
+  movieId: string,
 ): Promise<MovieDocument | null> => {
-  return Movie.findById(MovieId).exec();
+  return Movie.findById(movieId).exec();
 };
 
 export const findMovieByTitle = async (

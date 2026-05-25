@@ -8,6 +8,8 @@ export type CreateScreenData = Pick<
   "theater" | "name" | "format" | "audioType" | "layout"
 >;
 
+export type UpdateScreenData = Partial<CreateScreenData>;
+
 export const createScreen = async (
   data: CreateScreenData,
 ): Promise<ScreeDocument> => {

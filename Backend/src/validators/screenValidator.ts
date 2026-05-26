@@ -1,8 +1,16 @@
 import { z } from "zod";
+import mongoose from "mongoose";
+
+// Reusable validator for MongoDB ObjectIds
+const objectIdString = z
+  .string()
+  .refine((val) => mongoose.Types.ObjectId.isValid(val), {
+    message: "Invalid MongoDB ObjectId format",
+  });
 
 const seatSchema = z.object({
   seatNumber: z.string().min(1, "Seat number is required"),
-  type: z.enum(["standard", "premium", "recliner"]),
+  seatType: z.enum(["standard", "premium", "recliner"]),
   price: z.coerce.number().min(0, "Price cannot be negative"),
   isBroken: z.boolean().default(false),
 });
@@ -13,7 +21,8 @@ const rowSchema = z.object({
 });
 
 export const createScreenSchema = z.object({
-  theater: z.string().min(1, "Theater ID is required"),
+  // Use the custom ObjectId validator here
+  theater: objectIdString,
   name: z.string().min(1, "Screen name is required").trim(),
   format: z.enum(["2D", "3D", "IMAX", "4DX"]),
   audioType: z.enum(["Standard", "7.1 Surround", "Dolby Atmos"]),

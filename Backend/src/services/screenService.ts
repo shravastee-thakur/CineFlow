@@ -71,7 +71,7 @@ export const createScreen = async (
   return mapToScreenDto(screen);
 };
 
-export const findScreenByTheater = async (
+export const findScreensByTheater = async (
   theaterId: string,
 ): Promise<ScreenDto[]> => {
   const screens = await screenRepo.findScreensByTheater(theaterId);
@@ -94,12 +94,20 @@ export const updateScreen = async (
   const screen = await screenRepo.findScreenById(screenId);
   if (!screen) throw new ApiError(404, "Screen not found");
 
-  if (screenData.name && screenData.name !== screen.name) {
+  // 1. Determine what the final name and theater will be after the update
+  const newName = screenData.name || screen.name;
+  const newTheater = screenData.theater
+    ? screenData.theater.toString()
+    : screen.theater.toString();
+
+  // 2. Only run the database check if the name OR the theater is actually changing
+  if (newName !== screen.name || newTheater !== screen.theater.toString()) {
     const existingScreen = await screenRepo.findScreenByNameInTheater(
-      screen.theater.toString(),
-      screen.name,
+      newTheater,
+      newName,
     );
-    if (existingScreen) {
+
+    if (existingScreen && existingScreen._id.toString() !== screenId) {
       throw new ApiError(
         409,
         "A screen with this name already exists in this theater",

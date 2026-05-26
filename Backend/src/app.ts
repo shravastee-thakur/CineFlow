@@ -8,6 +8,7 @@ import { sanitizeMiddleware } from "./middlewares/sanitize.js";
 import userRoutes from "./routes/userRoutes.js";
 import movieRoutes from "./routes/movieRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
+import screenRoutes from "./routes/screenRoutes.js";
 
 const app = express();
 
@@ -36,6 +37,9 @@ app.use("/api/v1/movies", movieRoutes);
 
 app.use("/api/v1/theaters", theaterRoutes);
 // http://localhost:5000/api/v1/theaters/createTheater
+
+app.use("/api/v1/screens", screenRoutes);
+// http://localhost:5000/api/v1/screens/createScreen
 
 app.use(errorHandler);
 

@@ -44,7 +44,10 @@ export const findTheaterByName = async (
 export const findTheaterById = async (
   theaterId: string,
 ): Promise<TheaterDocument | null> => {
-  return Theater.findById(theaterId).exec();
+  return Theater.findOne({
+    _id: theaterId,
+    isDeleted: { $ne: true },
+  }).exec();
 };
 
 // export const findTheaterByState = async (

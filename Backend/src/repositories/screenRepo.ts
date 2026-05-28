@@ -19,7 +19,7 @@ export const createScreen = async (
 export const findScreenById = async (
   screenId: string,
 ): Promise<ScreeDocument | null> => {
-  return Screen.findById(screenId).exec();
+  return Screen.findOne({ _id: screenId, isDeleted: { $ne: true } }).exec();
 };
 
 export const findScreensByTheater = async (

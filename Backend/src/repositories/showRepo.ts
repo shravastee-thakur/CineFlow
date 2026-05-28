@@ -5,8 +5,10 @@ export type ShowDocument = HydratedDocument<IShow>;
 
 export type CreateShowData = Pick<
   IShow,
-  "movie" | "screen" | "startTime" | "endTime" | "bookedSeats" | "status"
+  "movie" | "screen" | "startTime" | "endTime"
 >;
+
+export type UpdateShowData = Partial<CreateShowData>;
 
 export const createShow = async (
   data: CreateShowData,

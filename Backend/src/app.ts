@@ -9,6 +9,7 @@ import userRoutes from "./routes/userRoutes.js";
 import movieRoutes from "./routes/movieRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import screenRoutes from "./routes/screenRoutes.js";
+import showRoutes from "./routes/showRoutes.js";
 
 const app = express();
 
@@ -40,6 +41,9 @@ app.use("/api/v1/theaters", theaterRoutes);
 
 app.use("/api/v1/screens", screenRoutes);
 // http://localhost:5000/api/v1/screens/createScreen
+
+app.use("/api/v1/shows", showRoutes);
+// http://localhost:5000/api/v1/shows/createShow
 
 app.use(errorHandler);
 

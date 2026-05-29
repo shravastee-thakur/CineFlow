@@ -58,3 +58,37 @@ export const findOverlappingShows = async (
 
   return Show.find(query).exec();
 };
+
+export const lockSeats = async (
+  showId: string,
+  seatsToLock: string[],
+): Promise<ShowDocument | null> => {
+  return Show.findOneAndUpdate(
+    {
+      _id: showId,
+      isDeleted: { $ne: true },
+      status: "scheduled",
+      bookedSeats: { $nin: seatsToLock },
+    },
+    {
+      $addToSet: { bookedSeats: { $each: seatsToLock } },
+    },
+    { new: true },
+  ).exec();
+};
+
+export const unlockSeats = async (
+  showId: string,
+  seatsToRemove: string[],
+): Promise<ShowDocument | null> => {
+  return Show.findOneAndUpdate(
+    {
+      _id: showId,
+      isDeleted: { $ne: true },
+      status: "scheduled",
+    },
+    { $pullAll: { bookedSeats: seatsToRemove } },
+
+    { new: true },
+  ).exec();
+};

@@ -164,8 +164,17 @@ export const findBookingByBookingId = async (
 ): Promise<BookingDto | null> => {
   const booking = await bookingRepo.findBookingByBookingId(bookingId);
   if (!booking) {
-    throw new ApiError(404, "Ticket not found");
+    throw new ApiError(404, "Booking not found");
   }
 
   return mapToBookingDto(booking);
+};
+
+export const findAllBookings = async (): Promise<BookingDto[]> => {
+  const bookings = await bookingRepo.findAllBookings();
+  if (!bookings) {
+    throw new ApiError(404, "Bookings not found");
+  }
+
+  return bookings.map(mapToBookingDto);
 };

@@ -89,7 +89,7 @@ export const getMyBookings = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.params.id as string;
+    const userId = req.user?.id as string;
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
@@ -102,6 +102,24 @@ export const getMyBookings = async (
     });
   } catch (error) {
     logger.error(`Get My Bookings error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getAllBookings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const bookings = await bookingService.findAllBookings();
+
+    return res.status(200).json({
+      success: true,
+      data: bookings,
+    });
+  } catch (error) {
+    logger.error(`Get All Bookings error: ${(error as Error).message}`);
     next(error);
   }
 };

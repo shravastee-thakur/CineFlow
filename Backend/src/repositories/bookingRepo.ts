@@ -51,3 +51,7 @@ export const findBookingByBookingId = async (
 ): Promise<BookingDocument | null> => {
   return Booking.findOne({ bookingId }).exec();
 };
+
+export const findAllBookings = async (): Promise<BookingDocument[]> => {
+  return Booking.find().exec();
+};

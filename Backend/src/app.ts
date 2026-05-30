@@ -10,6 +10,7 @@ import movieRoutes from "./routes/movieRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import screenRoutes from "./routes/screenRoutes.js";
 import showRoutes from "./routes/showRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
 
 const app = express();
 
@@ -44,6 +45,9 @@ app.use("/api/v1/screens", screenRoutes);
 
 app.use("/api/v1/shows", showRoutes);
 // http://localhost:5000/api/v1/shows/createShow
+
+app.use("/api/v1/bookings", bookingRoutes);
+// http://localhost:5000/api/v1/bookings/createBooking
 
 app.use(errorHandler);
 

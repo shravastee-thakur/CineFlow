@@ -1,11 +1,17 @@
 import * as bookingRepo from "../repositories/bookingRepo.js";
 import * as showRepo from "../repositories/showRepo.js";
+import * as screenRepo from "../repositories/screenRepo.js";
 import {
   BookingDocument,
   CreateBookingData,
 } from "../repositories/bookingRepo.js";
 import { ApiError } from "../utils/apiError.js";
 import { customAlphabet } from "nanoid";
+import mongoose from "mongoose";
+import {
+  CreateBookingInput,
+  UpdateBookingStatusInput,
+} from "../validators/bookingValidator.js";
 
 export interface BookingDto {
   _id: string;
@@ -35,20 +41,72 @@ const mapToBookingDto = (booking: BookingDocument): BookingDto => {
   };
 };
 
+export interface TicketDto {
+  bookingId: string;
+  seats: string[];
+  totalPrice: number;
+  status: string;
+  showTime: Date;
+  movieTitle: string;
+  moviePoster: string;
+  screenName: string;
+  theaterName: string;
+}
+
 export const createBooking = async (
-  showId: string,
-  bookingData: Omit<CreateBookingData, "bookingId" | "status">,
+  userId: string,
+  bookingData: CreateBookingInput,
 ): Promise<BookingDto> => {
-  const show = await showRepo.lockSeats(showId, bookingData.seats);
+  //  Lock the seats atomically in the database
+  const show = await showRepo.lockSeats(bookingData.showId, bookingData.seats);
   if (!show) {
-    throw new ApiError(409, "Seats are already taken.");
+    throw new ApiError(409, "One or more selected seats are already taken.");
   }
 
+  // Fetch the screen to calculate the secure total price
+  const screen = await screenRepo.findScreenById(show.screen.toString());
+  if (!screen) {
+    throw new ApiError(404, "Screen layout not found for price calculation.");
+  }
+
+  let calculatedPrice = 0;
+
+  for (const requestedSeat of bookingData.seats) {
+    let seatFound = false;
+
+    for (const row of screen.layout) {
+      const seat = row.seats.find((s) => s.seatNumber === requestedSeat);
+      if (seat) {
+        if (seat.isBroken) {
+          throw new ApiError(
+            400,
+            `Seat ${requestedSeat} is currently out of service.`,
+          );
+        }
+
+        calculatedPrice += seat.price;
+        seatFound = true;
+        break;
+      }
+    }
+
+    if (!seatFound) {
+      throw new ApiError(
+        400,
+        `Seat ${requestedSeat} does not exist in this screen.`,
+      );
+    }
+  }
+
+  //  Generate the human readable ticket ID
   const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
   const generatedBookingId = `BMS-${nanoid()}`;
 
   const finalPayload: CreateBookingData = {
-    ...bookingData,
+    user: new mongoose.Types.ObjectId(userId),
+    show: new mongoose.Types.ObjectId(bookingData.showId),
+    seats: bookingData.seats,
+    totalPrice: calculatedPrice,
     bookingId: generatedBookingId,
     status: "pending",
   };
@@ -60,14 +118,17 @@ export const createBooking = async (
 
 export const updateBookingStatus = async (
   bookingId: string,
-  status: "confirmed" | "failed",
+  status: UpdateBookingStatusInput,
 ): Promise<BookingDto | null> => {
-  const updateStatus = await bookingRepo.updateBookingStatus(bookingId, status);
+  const updateStatus = await bookingRepo.updateBookingStatus(
+    bookingId,
+    status.status,
+  );
   if (!updateStatus) {
     throw new ApiError(404, "Booking not found");
   }
 
-  if (status === "failed") {
+  if (status.status === "failed" || status.status === "cancelled") {
     await showRepo.unlockSeats(
       updateStatus.show.toString(),
       updateStatus.seats,
@@ -75,4 +136,36 @@ export const updateBookingStatus = async (
   }
 
   return mapToBookingDto(updateStatus);
+};
+
+export const findBookingsByUser = async (
+  userId: string,
+): Promise<TicketDto[]> => {
+  const bookings = await bookingRepo.findBookingsByUser(userId);
+  if (!bookings) {
+    throw new ApiError(404, "Bookings not found");
+  }
+
+  return bookings.map((booking: any) => ({
+    bookingId: booking.bookingId,
+    seats: booking.seats,
+    totalPrice: booking.totalPrice,
+    status: booking.status,
+    showTime: booking.show.startTime,
+    movieTitle: booking.show.movie.title,
+    moviePoster: booking.show.movie.posterImage?.url || "",
+    screenName: booking.show.screen.name,
+    theaterName: booking.show.screen.theater.name,
+  }));
+};
+
+export const findBookingByBookingId = async (
+  bookingId: string,
+): Promise<BookingDto | null> => {
+  const booking = await bookingRepo.findBookingByBookingId(bookingId);
+  if (!booking) {
+    throw new ApiError(404, "Ticket not found");
+  }
+
+  return mapToBookingDto(booking);
 };

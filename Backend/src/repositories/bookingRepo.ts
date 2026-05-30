@@ -1,3 +1,4 @@
+import { populate } from "dotenv";
 import Booking, { IBooking } from "../models/bookingModel.js";
 import { HydratedDocument } from "mongoose";
 
@@ -25,10 +26,24 @@ export const updateBookingStatus = async (
   ).exec();
 };
 
-export const findBookingsByUser = async (
-  userId: string,
-): Promise<BookingDocument[]> => {
-  return Booking.find({ user: userId }).sort({ createdAt: -1 }).exec();
+export const findBookingsByUser = async (userId: string): Promise<any[]> => {
+  return Booking.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .populate({
+      path: "show",
+      select: "startTime movie show",
+      populate: [
+        { path: "movie", select: "title posterImage duration" },
+        {
+          path: "screen",
+          select: "name format audioType theater",
+
+          populate: [{ path: "theater", select: "name city" }],
+        },
+      ],
+    })
+    .lean()
+    .exec();
 };
 
 export const findBookingByBookingId = async (

@@ -48,8 +48,23 @@ export const findBookingsByUser = async (userId: string): Promise<any[]> => {
 
 export const findBookingByBookingId = async (
   bookingId: string,
-): Promise<BookingDocument | null> => {
-  return Booking.findOne({ bookingId }).exec();
+): Promise<any | null> => {
+  return Booking.findOne({ bookingId })
+    .populate({
+      path: "show",
+      select: "startTime movie show",
+      populate: [
+        { path: "movie", select: "title posterImage duration" },
+        {
+          path: "screen",
+          select: "name format audioType theater",
+
+          populate: [{ path: "theater", select: "name city" }],
+        },
+      ],
+    })
+    .lean()
+    .exec();
 };
 
 export const findAllBookings = async (): Promise<BookingDocument[]> => {

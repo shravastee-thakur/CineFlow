@@ -10,7 +10,7 @@ import {
   TokenPayload,
   verifyRefreshToken,
 } from "../utils/jwt.js";
-import sendMail from "../config/sendMail.js";
+import * as queueService from "../services/queueService.js";
 
 export interface RegisterInput extends CreateUserData {}
 export interface LoginInput {
@@ -53,6 +53,7 @@ export const register = async (data: RegisterInput): Promise<UserDTO> => {
   }
 
   const newUser = await userRepo.createUser({ name, email, password, role });
+
   return mapToDTO(newUser);
 };
 
@@ -182,16 +183,7 @@ export const forgetPassword = async (email: string) => {
 
   const resetLink = `${env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user._id}`;
 
-  const htmlContent = `
-        <h2>Password Reset</h2>
-        <p>Click the link below to verify your account:</p>
-        <a href="${resetLink}" style="padding:10px 15px;background:#4f46e5;color:#fff;   border-radius:4px;text-decoration:none;">
-        Reset Password
-        </a>
-        <p>This link will expire in 15 minutes.</p>
-      `;
-
-  await sendMail(email, "Password Reset Request", htmlContent);
+  await queueService.sendPasswordResetEmail(email, resetLink);
 };
 
 export const resetPassword = async (

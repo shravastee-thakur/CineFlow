@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import * as userService from "../services/userService.js";
 import logger from "../utils/logger.js";
 import { RegisterInput, LoginInput } from "../services/userService.js";
-import sendMail from "../config/sendMail.js";
+import * as queueService from "../services/queueService.js";
 import { ApiError } from "../utils/apiError.js";
 import { sendAuthResponse } from "../helper/sendAuthResponse.js";
 import {
@@ -28,6 +28,7 @@ export const register = async (
     const user = await userService.register(validatedData as RegisterInput);
 
     logger.info(`New user registered: ${user.email}`);
+    await queueService.sendWelcomeEmail(user.email, user.name);
 
     return res.status(201).json({
       success: true,
@@ -53,20 +54,13 @@ export const loginStepOne = async (
 
     const otp = await userService.processLoginOtp(user.email);
 
-    const htmlContent = `
-            <p>Login Verification</p>
-            <p>Your OTP for login is:</p>
-            <h2><strong>${otp}</strong></h2>
-            <p>This OTP will expire in 5 minutes.</p>
-          `;
-
-    await sendMail(user.email, "Your 2FA Login OTP", htmlContent);
+    await queueService.sendLoginOtpEmail(user.email, otp);
 
     logger.info(`OTP sent to ${user.email}`);
 
     return res.status(200).json({
       success: true,
-      message: "Otp sent successfully",
+      message: "Otp sent successfully to your registered email",
       user: user._id,
     });
   } catch (error) {

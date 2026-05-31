@@ -14,7 +14,7 @@ export const createBooking = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.params.id as string;
+    const userId = req.user?.id as string;
     const validatedData = createBookingSchema.parse(
       req.body,
     ) as CreateBookingInput;

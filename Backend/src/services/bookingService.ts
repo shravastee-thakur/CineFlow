@@ -161,13 +161,23 @@ export const findBookingsByUser = async (
 
 export const findBookingByBookingId = async (
   bookingId: string,
-): Promise<BookingDto | null> => {
+): Promise<TicketDto | null> => {
   const booking = await bookingRepo.findBookingByBookingId(bookingId);
   if (!booking) {
     throw new ApiError(404, "Booking not found");
   }
 
-  return mapToBookingDto(booking);
+  return {
+    bookingId: booking.bookingId,
+    seats: booking.seats,
+    totalPrice: booking.totalPrice,
+    status: booking.status,
+    showTime: booking.show.startTime,
+    movieTitle: booking.show.movie.title,
+    moviePoster: booking.show.movie.posterImage?.url || "",
+    screenName: booking.show.screen.name,
+    theaterName: booking.show.screen.theater.name,
+  };
 };
 
 export const findAllBookings = async (): Promise<BookingDto[]> => {

@@ -1,61 +1,92 @@
-import { useState, FormEvent, ChangeEvent } from "react";
+import { useState, SyntheticEvent, ChangeEvent } from "react";
+import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+import api from "../../utils/axiosInstance";
 
 interface LoginFormState {
   email: string;
   password: string;
 }
 
-interface LoginFormErrors {
-  email?: string;
-  password?: string;
-}
-
-export default function LoginPage() {
+const LoginPage = () => {
+  const { setUserId } = useAuthStore();
   const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
-  const [errors, setErrors] = useState<LoginFormErrors>({});
+  const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>(
+    {
+      email: false,
+      password: false,
+    },
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const navigate = useNavigate();
 
-  const validate = (data: LoginFormState): LoginFormErrors => {
-    const errs: LoginFormErrors = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      errs.email = "Valid email is required";
-    }
-    if (!data.password) {
-      errs.password = "Password is required";
-    }
-    return errs;
-  };
+  const isInvalid = (field: keyof LoginFormState) =>
+    touched[field] && !form[field].trim();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    if (touched[name]) {
-      setErrors(validate({ ...form, [name]: value }));
+    if (touched[name as keyof LoginFormState] && value) {
+      setTouched((prev) => ({ ...prev, [name]: false }));
     }
   };
 
-  const handleBlur = (field: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validate(form));
+  const handleBlur = (field: keyof LoginFormState) => {
+    if (!form[field].trim()) {
+      setTouched((prev) => ({ ...prev, [field]: true }));
+    }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
-    const validationErrors = validate(form);
-    setErrors(validationErrors);
+
     setTouched({ email: true, password: true });
-
-    if (Object.keys(validationErrors).length > 0) return;
-
+    if (!form.email || !form.password) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
     setIsLoading(true);
-    // Replace with actual authentication call
-    await new Promise((res) => setTimeout(res, 1000));
-    setIsLoading(false);
-    console.log("Login payload:", form);
-    // Redirect or update auth context here
+
+    try {
+      const res = await api.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/loginStepOne`,
+        form,
+      );
+
+      console.log(res);
+      if (res.data.success) {
+        setUserId(res.data.user);
+        toast.success(res.data.message, {
+          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+        });
+        navigate("/verifyOtp");
+      }
+    } catch (error) {
+      let message = "Something went wrong. Please try again.";
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const inputBaseClasses =
+    "w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 focus:outline-none transition-all";
+
+  const getBorderClasses = (field: keyof LoginFormState) =>
+    isInvalid(field)
+      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+      : "border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20";
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
@@ -83,20 +114,9 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={handleChange}
                 onBlur={() => handleBlur("email")}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-all"
-                placeholder="you@example.com"
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "email-error" : undefined}
+                className={`${inputBaseClasses} border ${getBorderClasses("email")}`}
+                placeholder="Enter your email"
               />
-              {errors.email && touched.email && (
-                <p
-                  id="email-error"
-                  className="mt-1 text-sm text-red-400"
-                  role="alert"
-                >
-                  {errors.email}
-                </p>
-              )}
             </div>
 
             {/* Password */}
@@ -116,12 +136,8 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={handleChange}
                   onBlur={() => handleBlur("password")}
-                  className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 pr-11 border border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-all"
-                  placeholder="••••••••"
-                  aria-invalid={!!errors.password}
-                  aria-describedby={
-                    errors.password ? "password-error" : undefined
-                  }
+                  className={`${inputBaseClasses} border ${getBorderClasses("password")} pr-11`}
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"
@@ -130,51 +146,12 @@ export default function LoginPage() {
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      />
-                    </svg>
+                    <Eye className="h-5 w-5" />
                   ) : (
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                      />
-                    </svg>
+                    <EyeOff className="h-5 w-5" />
                   )}
                 </button>
               </div>
-              {errors.password && touched.password && (
-                <p
-                  id="password-error"
-                  className="mt-1 text-sm text-red-400"
-                  role="alert"
-                >
-                  {errors.password}
-                </p>
-              )}
             </div>
 
             <div className="flex justify-end">
@@ -219,15 +196,17 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-slate-400">
             Do not have an account?{" "}
-            <a
-              href="/register"
+            <Link
+              to="/register"
               className="text-amber-400 hover:text-amber-300 font-medium transition-colors"
             >
               Create one
-            </a>
+            </Link>
           </p>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

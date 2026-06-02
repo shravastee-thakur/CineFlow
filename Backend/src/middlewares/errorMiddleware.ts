@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import { ApiError } from "../utils/apiError.js";
+import { ZodError } from "zod";
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -50,6 +51,12 @@ export const errorHandler = (
     message = Object.values(err.errors)
       .map((val) => val.message)
       .join(", ");
+  } 
+  
+  
+  else if (err instanceof ZodError) {
+    statusCode = 400;
+    message = err.issues.map((issue) => issue.message).join(", ");
   }
 
   // 5. Fallback for generic errors (already defaulted at the top)

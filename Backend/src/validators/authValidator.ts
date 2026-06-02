@@ -11,7 +11,7 @@ export const registerSchema = z.object({
   password: z
     .string()
     .min(6, "Password must be at least 6 characters")
-    .max(128, "Password must be at most 128 characters"),
+    .max(14, "Password must be at most 14 characters"),
   role: z.enum(["admin", "user"]).optional(),
 });
 
@@ -50,7 +50,7 @@ export type ForgetPasswordInput = z.infer<typeof forgetPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
   userId: z.string().length(24, "Invalid user ID"),
-  token: z.string().min(10, "Invalid token"), // matches your crypto.randomBytes(10)
+  token: z.string().min(10, "Invalid token"), // matches crypto.randomBytes(10)
   newPassword: z
     .string()
     .min(6, "Password must be at least 6 characters")

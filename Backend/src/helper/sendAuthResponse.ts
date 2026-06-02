@@ -1,6 +1,6 @@
 import { env } from "../config/env.js";
 import { Response } from "express";
-import { UserResponse } from "../services/userService.js";
+import { UserDTO } from "../services/userService.js";
 
 interface AuthTokens {
   accessToken: string;
@@ -10,7 +10,7 @@ interface AuthTokens {
 export const sendAuthResponse = (
   res: Response,
   tokens: AuthTokens,
-  user: UserResponse,
+  user: UserDTO,
   message: string = "Success",
 ) => {
   return res

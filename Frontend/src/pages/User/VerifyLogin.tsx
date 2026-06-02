@@ -1,11 +1,8 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  ChangeEvent,
-  KeyboardEvent,
-  ClipboardEvent,
-} from "react";
+import { useState, useEffect, ChangeEvent, ClipboardEvent } from "react";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+import api from "../../utils/axiosInstance";
 
 const OTP_LENGTH = 6;
 const EXPIRY_SECONDS = 300;
@@ -18,13 +15,15 @@ function formatTime(seconds: number): string {
 }
 
 export default function VerifyOTPPage() {
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+  const { userId } = useAuthStore();
+  const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [expiryTime, setExpiryTime] = useState(EXPIRY_SECONDS);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const navigate = useNavigate();
 
   const isExpiring = expiryTime <= EXPIRY_THRESHOLD;
+  const isOtpComplete = otp.length === OTP_LENGTH;
 
   useEffect(() => {
     if (expiryTime <= 0) return;
@@ -36,30 +35,15 @@ export default function VerifyOTPPage() {
   }, [expiryTime]);
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
+    // Auto focus the input on mount
+    const input = document.getElementById("otp-input");
+    input?.focus();
   }, []);
 
-  const handleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (!/^\d*$/.test(raw)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = raw.slice(-1);
-    setOtp(newOtp);
-    setError("");
-
-    if (raw && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-    if (e.key === "Enter") {
-      handleVerify();
-    }
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH);
+    setOtp(raw);
+    if (error) setError("");
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
@@ -68,35 +52,51 @@ export default function VerifyOTPPage() {
       .getData("text")
       .replace(/\D/g, "")
       .slice(0, OTP_LENGTH);
-    if (!pasted) return;
+    setOtp(pasted);
+    if (error) setError("");
+  };
 
-    const newOtp = [...otp];
-    for (let i = 0; i < pasted.length; i++) {
-      newOtp[i] = pasted[i];
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && isOtpComplete) {
+      handleVerify();
     }
-    setOtp(newOtp);
-    const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
-    inputRefs.current[focusIndex]?.focus();
   };
 
   const handleVerify = async () => {
-    const code = otp.join("");
     if (expiryTime <= 0) {
       setError("Code has expired. Please restart the login flow.");
       return;
     }
-    if (code.length < OTP_LENGTH) {
-      setError("Enter the complete verification code");
+    if (!isOtpComplete) {
+      setError(`Enter all ${OTP_LENGTH} digits`);
       return;
     }
 
     setIsLoading(true);
     setError("");
-    // Replace with actual API call
-    await new Promise((res) => setTimeout(res, 1200));
-    setIsLoading(false);
-    console.log("Verifying OTP:", code);
-    // Redirect or update session on success
+
+    try {
+      const res = await api.post("/api/v1/users/verifyLogin", { userId, otp });
+
+      if (res.data.success) {
+        toast.success(res.data.message, {
+          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+        });
+        navigate("/");
+      }
+    } catch (err: any) {
+      let message = "Something went wrong. Please try again.";
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -112,11 +112,7 @@ export default function VerifyOTPPage() {
 
           {/* Expiry Status Block */}
           <div
-            className={`mb-6 flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg ${
-              isExpiring
-                ? "bg-orange-950/40 text-orange-400 border border-orange-800/50"
-                : "bg-slate-800/50 text-slate-300 border border-slate-700"
-            }`}
+            className={`mb-6 flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-lg ${isExpiring ? "bg-orange-950/40 text-orange-400 border border-orange-800/50" : "bg-slate-800/50 text-slate-300 border border-slate-700"}`}
           >
             {isExpiring ? (
               <svg
@@ -150,40 +146,36 @@ export default function VerifyOTPPage() {
             <span>Code expires in {formatTime(expiryTime)}</span>
           </div>
 
-          <div className="flex justify-center gap-3 mb-6">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => {
-                  inputRefs.current[index] = el;
-                }}
-                type="text"
-                inputMode="numeric"
-                autoComplete={index === 0 ? "one-time-code" : "off"}
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleChange(index, e)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={handlePaste}
-                className={`w-12 h-14 text-center text-2xl font-semibold rounded-xl border transition-all focus:outline-none ${
-                  error
-                    ? "bg-red-950/30 border-red-500/50 text-red-300"
-                    : "bg-slate-800 border-slate-700 text-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                }`}
-                aria-label={`OTP digit ${index + 1}`}
-              />
-            ))}
+          {/* Single OTP Input */}
+          <div className="mb-6">
+            <input
+              id="otp-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={otp}
+              onChange={handleChange}
+              onPaste={handlePaste}
+              onKeyDown={handleKeyDown}
+              maxLength={OTP_LENGTH}
+              placeholder="000000"
+              aria-label="One time password"
+              className={`w-full bg-slate-800 text-white text-center text-3xl tracking-[1em] font-semibold rounded-xl px-4 py-4 border transition-all focus:outline-none ${
+                error
+                  ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  : "border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+              }`}
+            />
+            {error && (
+              <p className="mt-2 text-sm text-center text-red-400" role="alert">
+                {error}
+              </p>
+            )}
           </div>
-
-          {error && (
-            <p className="mb-4 text-sm text-center text-red-400" role="alert">
-              {error}
-            </p>
-          )}
 
           <button
             onClick={handleVerify}
-            disabled={isLoading || expiryTime === 0}
+            disabled={isLoading || expiryTime === 0 || !isOtpComplete}
             className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 disabled:cursor-not-allowed text-slate-950 font-semibold py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900 mb-4"
           >
             {isLoading ? (

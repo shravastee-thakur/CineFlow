@@ -5,6 +5,7 @@ import { Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/User/Login";
 
 import VerifyOTPPage from "./pages/User/VerifyLogin";
+import Home from "./components/Home";
 
 const App = () => {
   return (
@@ -12,7 +13,8 @@ const App = () => {
       <Toaster position="top-right" reverseOrder={false} />
       {/* <Navbar /> */}
       <Routes>
-        <Route path="/" element={<RegisterPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/verifyOtp" element={<VerifyOTPPage />} />
       </Routes>

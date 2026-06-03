@@ -1,0 +1,477 @@
+import { useState, useRef, useCallback } from "react";
+import { X, Upload, Trash2, Edit2 } from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../../utils/axiosInstance";
+
+interface Movie {
+  _id: string;
+  title: string;
+  description: string;
+  duration: number;
+  genre: string[];
+  releaseDate: string;
+  language: string[];
+  posterImage?: { url: string; public_id: string };
+  rating: number;
+  format: string[];
+  status: "coming_soon" | "now_showing" | "ended";
+}
+
+interface MovieFormData extends Omit<Movie, "_id" | "posterImage"> {
+  posterFile?: File | null;
+  posterPreview?: string;
+}
+
+const GENRES = [
+  "Action",
+  "Drama",
+  "Sci-Fi",
+  "Thriller",
+  "Animation",
+  "Horror",
+  "Comedy",
+];
+const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Malayalam"];
+const FORMATS = ["2D", "3D", "IMAX", "4DX", "Dolby"];
+const STATUSES: Movie["status"][] = ["coming_soon", "now_showing", "ended"];
+
+export default function MovieManager() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<MovieFormData>({
+    title: "",
+    description: "",
+    duration: 0,
+    genre: [],
+    releaseDate: "",
+    language: [],
+    rating: 0,
+    format: [],
+    status: "coming_soon",
+    posterFile: null,
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  // Fetch movies on mount
+  const fetchMovies = useCallback(async () => {
+    try {
+      const res = await api.get("/api/v1/admin/movies");
+      setMovies(res.data.movies);
+    } catch {
+      toast.error("Failed to load movies");
+    }
+  }, []);
+
+  // Drag & Drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file?.type.startsWith("image/")) handleFileSelect(file);
+  }, []);
+
+  const handleFileSelect = (file: File) => {
+    setFormData((prev) => ({
+      ...prev,
+      posterFile: file,
+      posterPreview: URL.createObjectURL(file),
+    }));
+  };
+
+  const handleChange = (field: keyof MovieFormData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleArrayToggle = (
+    field: "genre" | "language" | "format",
+    value: string,
+  ) => {
+    setFormData((prev) => {
+      const arr = prev[field] as string[];
+      return {
+        ...prev,
+        [field]: arr.includes(value)
+          ? arr.filter((v) => v !== value)
+          : [...arr, value],
+      };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title || !formData.description) {
+      toast.error("Title and description are required");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const payload = new FormData();
+      // Append text fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "posterFile" || key === "posterPreview") return;
+        if (Array.isArray(value)) {
+          value.forEach((v) => payload.append(key, v));
+        } else {
+          payload.append(key, String(value));
+        }
+      });
+      if (formData.posterFile)
+        payload.append("posterImage", formData.posterFile);
+
+      if (editingMovie) {
+        await api.put(`/api/v1/admin/movies/${editingMovie._id}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Movie updated");
+      } else {
+        await api.post("/api/v1/admin/movies", payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Movie created");
+      }
+      setIsModalOpen(false);
+      resetForm();
+      fetchMovies();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Operation failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      duration: 0,
+      genre: [],
+      releaseDate: "",
+      language: [],
+      rating: 0,
+      format: [],
+      status: "coming_soon",
+      posterFile: null,
+      posterPreview: undefined,
+    });
+    setEditingMovie(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const openEditModal = (movie: Movie) => {
+    setEditingMovie(movie);
+    setFormData({
+      ...movie,
+      posterPreview: movie.posterImage?.url,
+      posterFile: null,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this movie?")) return;
+    try {
+      await api.delete(`/api/v1/admin/movies/${id}`);
+      toast.success("Movie deleted");
+      fetchMovies();
+    } catch {
+      toast.error("Delete failed");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">Manage Movies</h2>
+        <button
+          onClick={() => {
+            resetForm();
+            setIsModalOpen(true);
+          }}
+          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium rounded-lg transition-colors"
+        >
+          + Add Movie
+        </button>
+      </div>
+
+      {/* Movie List */}
+      <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-800/50 text-slate-300">
+              <tr>
+                <th className="px-4 py-3">Poster</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Rating</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {movies.map((movie) => (
+                <tr key={movie._id} className="hover:bg-slate-800/30">
+                  <td className="px-4 py-3">
+                    <img
+                      src={
+                        movie.posterImage?.url ||
+                        "https://via.placeholder.com/60x90"
+                      }
+                      alt={movie.title}
+                      className="w-12 h-18 object-cover rounded"
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-medium text-white">
+                    {movie.title}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        movie.status === "now_showing"
+                          ? "bg-green-500/10 text-green-400"
+                          : movie.status === "coming_soon"
+                            ? "bg-amber-500/10 text-amber-400"
+                            : "bg-slate-500/10 text-slate-400"
+                      }`}
+                    >
+                      {movie.status.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-amber-400">★ {movie.rating}</td>
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <button
+                      onClick={() => openEditModal(movie)}
+                      className="text-slate-400 hover:text-amber-400"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(movie._id)}
+                      className="text-slate-400 hover:text-red-400"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="bg-slate-900 rounded-2xl border border-slate-800 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+              <h3 className="text-lg font-semibold text-white">
+                {editingMovie ? "Edit Movie" : "Add Movie"}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Poster Image
+                </label>
+                <div
+                  ref={dropRef}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-700 hover:border-amber-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-800/30"
+                >
+                  {formData.posterPreview ? (
+                    <img
+                      src={formData.posterPreview}
+                      alt="Preview"
+                      className="mx-auto h-40 object-contain rounded"
+                    />
+                  ) : (
+                    <div className="text-slate-400">
+                      <Upload className="w-8 h-8 mx-auto mb-2" />
+                      <p className="text-sm">Drag & drop or click to upload</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) =>
+                      e.target.files?.[0] && handleFileSelect(e.target.files[0])
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleChange("title", e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Duration (min)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) =>
+                      handleChange("duration", Number(e.target.value))
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  rows={3}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              {/* Selects */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Release Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.releaseDate}
+                    onChange={(e) =>
+                      handleChange("releaseDate", e.target.value)
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Rating
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="10"
+                    value={formData.rating}
+                    onChange={(e) =>
+                      handleChange("rating", Number(e.target.value))
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Multi-selects */}
+              {(["genre", "language", "format"] as const).map((field) => (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-slate-300 mb-2 capitalize">
+                    {field}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(field === "genre"
+                      ? GENRES
+                      : field === "language"
+                        ? LANGUAGES
+                        : FORMATS
+                    ).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => handleArrayToggle(field, opt)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          (formData[field] as string[]).includes(opt)
+                            ? "bg-amber-500 text-slate-950 border-amber-500"
+                            : "bg-slate-800 text-slate-300 border-slate-700 hover:border-amber-500"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-6 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-slate-950 font-medium rounded-lg transition-colors"
+                >
+                  {isLoading
+                    ? "Saving..."
+                    : editingMovie
+                      ? "Update Movie"
+                      : "Create Movie"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

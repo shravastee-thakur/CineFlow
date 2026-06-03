@@ -14,8 +14,8 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function VerifyOTPPage() {
-  const { userId } = useAuthStore();
+const VerifyOTPPage = () => {
+  const { userId, setIsVerified, setUserInfo, setRole } = useAuthStore();
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -77,8 +77,12 @@ export default function VerifyOTPPage() {
 
     try {
       const res = await api.post("/api/v1/users/verifyLogin", { userId, otp });
+      console.log(res);
 
       if (res.data.success) {
+        setIsVerified(res.data.user.isVerified);
+        setUserInfo(res.data.user);
+        setRole(res.data.user.role);
         toast.success(res.data.message, {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
         });
@@ -208,4 +212,6 @@ export default function VerifyOTPPage() {
       </div>
     </div>
   );
-}
+};
+
+export default VerifyOTPPage;

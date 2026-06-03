@@ -1,8 +1,8 @@
 import { useState, SyntheticEvent, ChangeEvent } from "react";
-import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import axios from "axios";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../utils/axiosInstance";
 
@@ -11,7 +11,7 @@ interface LoginFormState {
   password: string;
 }
 
-const LoginPage = () => {
+export default function LoginPage() {
   const { setUserId } = useAuthStore();
   const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
   const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>(
@@ -43,21 +43,17 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
-
     setTouched({ email: true, password: true });
+
     if (!form.email || !form.password) {
       toast.error("Please fill in all fields.");
       return;
     }
+
     setIsLoading(true);
-
     try {
-      const res = await api.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/loginStepOne`,
-        form,
-      );
+      const res = await api.post("/api/v1/users/loginStepOne", form);
 
-      console.log(res);
       if (res.data.success) {
         setUserId(res.data.user);
         toast.success(res.data.message, {
@@ -89,7 +85,15 @@ const LoginPage = () => {
       : "border-slate-700 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20";
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12 relative">
+      <button
+        onClick={() => navigate("/")}
+        aria-label="Back to home"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800/50 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-950 z-10"
+      >
+        <ArrowLeft className="w-5 h-5" />
+      </button>
+
       <div className="w-full max-w-md">
         <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8 shadow-2xl">
           <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
@@ -155,12 +159,12 @@ const LoginPage = () => {
             </div>
 
             <div className="flex justify-end">
-              <a
-                href="/forgot-password"
+              <Link
+                to="/forget-password"
                 className="text-sm text-amber-400 hover:text-amber-300 transition-colors"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             <button
@@ -207,6 +211,4 @@ const LoginPage = () => {
       </div>
     </div>
   );
-};
-
-export default LoginPage;
+}

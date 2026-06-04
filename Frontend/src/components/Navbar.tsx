@@ -64,7 +64,9 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      const res = await api.post("/api/v1/users/logout");
+      const res = await api.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/users/logout`,
+      );
       if (res.data.success) {
         toast.success(res.data.message, {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },

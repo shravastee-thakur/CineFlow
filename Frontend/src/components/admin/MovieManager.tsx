@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { X, Upload, Trash2, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
@@ -56,22 +56,33 @@ export default function MovieManager() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  // Fetch movies on mount
   const fetchMovies = useCallback(async () => {
     try {
-      const res = await api.get("/api/v1/admin/movies");
-      setMovies(res.data.movies);
-    } catch {
-      toast.error("Failed to load movies");
+      const res = await api.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesAdmin?page=1&limit=10`,
+      );
+      if (res.data.success) setMovies(res.data.data.movies);
+    } catch (err: any) {
+      let message = "Something went wrong. Please try again.";
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
     }
   }, []);
 
-  // Drag & Drop handlers
+  useEffect(() => {
+    fetchMovies();
+  }, [fetchMovies]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
-
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -108,42 +119,78 @@ export default function MovieManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.description) {
-      toast.error("Title and description are required");
-      return;
-    }
 
     setIsLoading(true);
     try {
       const payload = new FormData();
-      // Append text fields
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === "posterFile" || key === "posterPreview") return;
-        if (Array.isArray(value)) {
-          value.forEach((v) => payload.append(key, v));
-        } else {
-          payload.append(key, String(value));
-        }
-      });
-      if (formData.posterFile)
+
+      payload.append("title", formData.title.trim());
+      payload.append("description", formData.description.trim());
+      payload.append("duration", String(formData.duration));
+      payload.append("releaseDate", formData.releaseDate);
+      payload.append("rating", String(formData.rating));
+      payload.append("status", formData.status);
+
+      formData.genre.forEach((g) => payload.append("genre", g));
+      formData.language.forEach((l) => payload.append("language", l));
+      formData.format.forEach((f) => payload.append("format", f));
+
+      if (formData.posterFile) {
         payload.append("posterImage", formData.posterFile);
+      }
 
       if (editingMovie) {
-        await api.put(`/api/v1/admin/movies/${editingMovie._id}`, payload, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Movie updated");
+        const res = await api.put(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/updateMovie/${editingMovie._id}`,
+          payload,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
+        console.log(res);
+        if (res.data.success) {
+          toast.success(res.data.message, {
+            style: {
+              borderRadius: "10px",
+              background: "#AAFFC7",
+              color: "#333",
+            },
+          });
+        }
       } else {
-        await api.post("/api/v1/admin/movies", payload, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Movie created");
+        const res = await api.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/createMovie`,
+          payload,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
+        console.log(res);
+
+        if (res.data.success) {
+          toast.success(res.data.message, {
+            style: {
+              borderRadius: "10px",
+              background: "#AAFFC7",
+              color: "#333",
+            },
+          });
+        }
       }
+
       setIsModalOpen(false);
       resetForm();
       fetchMovies();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Operation failed");
+      let message = "Something went wrong. Please try again.";
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -171,21 +218,11 @@ export default function MovieManager() {
     setEditingMovie(movie);
     setFormData({
       ...movie,
+      // Keep existing poster preview, but posterFile is null (no re-upload unless user changes)
       posterPreview: movie.posterImage?.url,
       posterFile: null,
     });
     setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this movie?")) return;
-    try {
-      await api.delete(`/api/v1/admin/movies/${id}`);
-      toast.success("Movie deleted");
-      fetchMovies();
-    } catch {
-      toast.error("Delete failed");
-    }
   };
 
   return (
@@ -254,12 +291,6 @@ export default function MovieManager() {
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => handleDelete(movie._id)}
-                      className="text-slate-400 hover:text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </td>
                 </tr>
               ))}
@@ -294,7 +325,8 @@ export default function MovieManager() {
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Poster Image
+                  Poster Image{" "}
+                  {!editingMovie && <span className="text-red-400">*</span>}
                 </label>
                 <div
                   ref={dropRef}
@@ -325,13 +357,18 @@ export default function MovieManager() {
                     }
                   />
                 </div>
+                {editingMovie && formData.posterPreview && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Keep existing poster or upload a new one
+                  </p>
+                )}
               </div>
 
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Title *
+                    Title <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -343,22 +380,24 @@ export default function MovieManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Duration (min)
+                    Duration (min) <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
-                    value={formData.duration}
+                    min="1"
+                    value={formData.duration || ""}
                     onChange={(e) =>
                       handleChange("duration", Number(e.target.value))
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                    required
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Description *
+                  Description <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={formData.description}
@@ -373,7 +412,7 @@ export default function MovieManager() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Release Date
+                    Release Date <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="date"
@@ -382,22 +421,24 @@ export default function MovieManager() {
                       handleChange("releaseDate", e.target.value)
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Rating
+                    Rating (0-5) <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
                     step="0.1"
                     min="0"
-                    max="10"
-                    value={formData.rating}
+                    max="5"
+                    value={formData.rating || ""}
                     onChange={(e) =>
                       handleChange("rating", Number(e.target.value))
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
+                    required
                   />
                 </div>
                 <div>
@@ -422,7 +463,10 @@ export default function MovieManager() {
               {(["genre", "language", "format"] as const).map((field) => (
                 <div key={field}>
                   <label className="block text-sm font-medium text-slate-300 mb-2 capitalize">
-                    {field}
+                    {field}{" "}
+                    {field !== "format" && (
+                      <span className="text-red-400">*</span>
+                    )}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {(field === "genre"

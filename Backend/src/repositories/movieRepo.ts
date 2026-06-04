@@ -25,7 +25,7 @@ export const createMovie = async (
   return Movie.create(data);
 };
 
-export const findAllMovies = async (
+export const findAllMoviesUser = async (
   page: number = 1,
   limit: number = 10,
 ): Promise<MovieDocument[]> => {
@@ -38,10 +38,23 @@ export const findAllMovies = async (
     .exec();
 };
 
+export const findAllMoviesAdmin = async (
+  page: number = 1,
+  limit: number = 10,
+): Promise<MovieDocument[]> => {
+  const skip = (page - 1) * limit;
+
+  return Movie.find().sort({ createdAt: -1 }).skip(skip).limit(limit).exec();
+};
+
 export const countAllMovies = (): Promise<number> => {
   return Movie.countDocuments({
     status: { $in: ["coming_soon", "now_showing"] },
   }).exec();
+};
+
+export const countAllMoviesAdmin = (): Promise<number> => {
+  return Movie.countDocuments({}).exec();
 };
 
 export const findMovieById = async (

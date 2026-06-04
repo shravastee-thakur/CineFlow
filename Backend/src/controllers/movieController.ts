@@ -36,7 +36,7 @@ export const createMovie = async (
   }
 };
 
-export const getAllMovies = async (
+export const getAllMoviesUser = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -49,10 +49,31 @@ export const getAllMovies = async (
     const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
 
-    const movies = await movieService.findAllMovies(page, limit);
+    const movies = await movieService.findAllMoviesUser(page, limit);
     return res.status(200).json({ success: true, data: movies });
   } catch (error) {
-    logger.error(`Get all Movies error: ${(error as Error).message}`);
+    logger.error(`Get all Movies User error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getAllMoviesAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const rawPage = parseInt(req.query.page as string, 10);
+    const rawLimit = parseInt(req.query.limit as string, 10);
+    // We count using 10 digits (0, 1, 2, 3, 4, 5, 6, 7, 8, 9). This is called Base-10.
+
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
+
+    const movies = await movieService.findAllMoviesAdmin(page, limit);
+    return res.status(200).json({ success: true, data: movies });
+  } catch (error) {
+    logger.error(`Get all Movies Admin error: ${(error as Error).message}`);
     next(error);
   }
 };
@@ -106,13 +127,11 @@ export const updateMovie = async (
     );
     logger.info(`Movie updated successfully: ${movie.title}`);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Movie updated successfuly",
-        data: movie,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Movie updated successfuly",
+      data: movie,
+    });
   } catch (error) {
     logger.error(`Update movie error: ${(error as Error).message}`);
     next(error);

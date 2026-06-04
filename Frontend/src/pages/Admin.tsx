@@ -8,7 +8,7 @@ import ShowManager from "../components/admin/ShowManager";
 
 type AdminTab = "movies" | "theaters" | "screens" | "shows";
 
-export default function AdminPage() {
+const AdminPage = () => {
   const { role, isVerified, userInfo } = useAuthStore();
 
   const navigate = useNavigate();
@@ -71,4 +71,6 @@ export default function AdminPage() {
       </main>
     </div>
   );
-}
+};
+
+export default AdminPage;

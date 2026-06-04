@@ -19,10 +19,23 @@ export default function TheaterManager() {
 
   const fetchTheaters = useCallback(async () => {
     try {
-      const res = await api.get("/api/v1/admin/theaters");
-      setTheaters(res.data.theaters);
-    } catch {
-      toast.error("Failed to load theaters");
+      const res = await api.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheaters?page=1&limit=5`,
+      );
+      console.log(res.data);
+      if (res.data.success) {
+        setTheaters(res.data.data.theater);
+      }
+    } catch (err: any) {
+      let message = "Something went wrong. Please try again.";
+      if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
     }
   }, []);
 
@@ -30,18 +43,41 @@ export default function TheaterManager() {
     fetchTheaters();
   }, [fetchTheaters]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!form.name || !form.city)
-      return toast.error("Name and City are required");
+
     setIsLoading(true);
     try {
       if (editing) {
-        await api.put(`/api/v1/admin/theaters/${editing._id}`, form);
-        toast.success("Theater updated");
+        const res = await api.put(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/updateTheater/${editing._id}`,
+          form,
+        );
+        console.log(res);
+        if (res.data.success) {
+          toast.success(res.data.message, {
+            style: {
+              borderRadius: "10px",
+              background: "#AAFFC7",
+              color: "#333",
+            },
+          });
+        }
       } else {
-        await api.post("/api/v1/admin/theaters", form);
-        toast.success("Theater created");
+        const res = await api.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/createTheater`,
+          form,
+        );
+        console.log(res);
+        if (res.data.success) {
+          toast.success(res.data.message, {
+            style: {
+              borderRadius: "10px",
+              background: "#AAFFC7",
+              color: "#333",
+            },
+          });
+        }
       }
       setIsModalOpen(false);
       setForm({ name: "", location: "", city: "" });
@@ -57,7 +93,9 @@ export default function TheaterManager() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this theater?")) return;
     try {
-      await api.delete(`/api/v1/admin/theaters/${id}`);
+      await api.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/deleteTheater/${id}`,
+      );
       toast.success("Theater deleted");
       fetchTheaters();
     } catch {

@@ -40,7 +40,9 @@ export default function ScreenManager() {
     try {
       const [screensRes, theatersRes] = await Promise.all([
         api.get("/api/v1/admin/screens"),
-        api.get("/api/v1/admin/theaters"),
+        api.get(
+          "http://localhost:5000/api/v1/theaters/getAllTheaters?page=1&limit=5",
+        ),
       ]);
       setScreens(screensRes.data.screens);
       setTheaters(theatersRes.data.theaters);

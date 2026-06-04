@@ -14,7 +14,9 @@ router.post(
   movieController.createMovie,
 );
 
-router.get("/getAllMovies", movieController.getAllMovies);
+router.get("/getAllMoviesUser", movieController.getAllMoviesUser);
+
+router.get("/getAllMoviesadmin", movieController.getAllMoviesAdmin);
 
 router.get("/getMovieById/:id", movieController.getMovieById);
 

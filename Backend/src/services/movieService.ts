@@ -25,6 +25,7 @@ export interface MovieDto {
   };
   rating: number;
   format: string[];
+  status: "coming_soon" | "now_showing" | "ended";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -49,6 +50,7 @@ const mapToMovieDTO = (movie: MovieDocument): MovieDto => {
     posterImage: obj.posterImage,
     rating: obj.rating,
     format: obj.format,
+    status: obj.status,
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt,
   };
@@ -75,13 +77,31 @@ export const createMovie = async (
   return mapToMovieDTO(movie);
 };
 
-export const findAllMovies = async (
+export const findAllMoviesUser = async (
   page: number,
   limit: number,
 ): Promise<PaginatedMoviesResponse> => {
   const totalMovies = await movieRepo.countAllMovies();
 
-  const movies = await movieRepo.findAllMovies(page, limit);
+  const movies = await movieRepo.findAllMoviesUser(page, limit);
+
+  const totalPages = Math.ceil(totalMovies / limit);
+
+  return {
+    movies: movies.map(mapToMovieDTO),
+    currentPage: page,
+    totalPages,
+    totalMovies,
+  };
+};
+
+export const findAllMoviesAdmin = async (
+  page: number,
+  limit: number,
+): Promise<PaginatedMoviesResponse> => {
+  const totalMovies = await movieRepo.countAllMoviesAdmin();
+
+  const movies = await movieRepo.findAllMoviesAdmin(page, limit);
 
   const totalPages = Math.ceil(totalMovies / limit);
 
@@ -103,7 +123,6 @@ export const findTopMovieByRating = async (
   limit: number = 10,
 ): Promise<MovieDto[]> => {
   const movies = await movieRepo.findTopMovieByRating(limit);
-  if (!movies) throw new ApiError(404, "Movie not found");
   return movies.map(mapToMovieDTO);
 };
 
@@ -151,5 +170,3 @@ export const updateMovie = async (
 
   return mapToMovieDTO(movie);
 };
-
-

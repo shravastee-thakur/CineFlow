@@ -24,6 +24,17 @@ export const findAllTheaters = async (
     .exec();
 };
 
+export const findAllTheatersAdmin = async (
+  page: number = 1,
+  limit: number = 10,
+): Promise<TheaterDocument[]> => {
+  const skip = (page - 1) * limit;
+  return Theater.find()
+    .skip(skip)
+    .limit(limit)
+    .exec();
+};
+
 export const countAllTheaters = (): Promise<number> => {
   return Theater.countDocuments({ isDeleted: { $ne: true } }).exec();
 };

@@ -9,7 +9,7 @@ import ForgetPasswordPage from "./pages/User/ForgetPassword";
 import ResetPasswordPage from "./pages/User/ResetPassword";
 
 import Home from "./pages/Home";
-import UserProfilePage from "./pages/User/Profile";
+import UserProfilePage from "./pages/User/UserProfilePage";
 import AdminPage from "./pages/Admin";
 
 const App = () => {

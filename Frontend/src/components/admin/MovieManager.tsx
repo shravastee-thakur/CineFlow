@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { X, Upload, Trash2, Edit2 } from "lucide-react";
+import { X, Upload, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
+import { useAuthStore } from "../../store/authStore";
 
 interface Movie {
   _id: string;
@@ -35,7 +36,9 @@ const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Malayalam"];
 const FORMATS = ["2D", "3D", "IMAX", "4DX", "Dolby"];
 const STATUSES: Movie["status"][] = ["coming_soon", "now_showing", "ended"];
 
-export default function MovieManager() {
+const MovieManager = () => {
+  const { role } = useAuthStore();
+
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
@@ -57,9 +60,13 @@ export default function MovieManager() {
   const dropRef = useRef<HTMLDivElement>(null);
 
   const fetchMovies = useCallback(async () => {
+    if (role !== "admin") return;
     try {
       const res = await api.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesAdmin?page=1&limit=10`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesAdmin`,
+        {
+          params: { page: 1, limit: 10 },
+        },
       );
       if (res.data.success) setMovies(res.data.data.movies);
     } catch (err: any) {
@@ -76,8 +83,10 @@ export default function MovieManager() {
   }, []);
 
   useEffect(() => {
-    fetchMovies();
-  }, [fetchMovies]);
+    if (role === "admin") {
+      fetchMovies();
+    }
+  }, [role, fetchMovies]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -518,4 +527,6 @@ export default function MovieManager() {
       )}
     </div>
   );
-}
+};
+
+export default MovieManager;

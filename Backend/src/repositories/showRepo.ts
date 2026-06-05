@@ -5,7 +5,7 @@ export type ShowDocument = HydratedDocument<IShow>;
 
 export type CreateShowData = Pick<
   IShow,
-  "movie" | "screen" | "startTime" | "endTime"
+  "movie" | "theater" | "screen" | "startTime" | "endTime"
 >;
 
 export type UpdateShowData = Partial<CreateShowData>;
@@ -22,20 +22,46 @@ export const findShowById = async (
   return Show.findById(showId).exec();
 };
 
+export const findShowsByTheater = async (
+  theaterId: string,
+  includeDeleted: boolean = false,
+): Promise<ShowDocument[]> => {
+  const query = Show.find({ theater: theaterId });
+  if (includeDeleted) {
+    query.select("+isDeleted");
+  } else {
+    query.where({ isDeleted: { $ne: true } });
+  }
+  return query.sort({ startTime: 1 }).exec();
+};
+
 export const findShowsByScreen = async (
   screenId: string,
+  includeDeleted: boolean = false,
 ): Promise<ShowDocument[]> => {
-  return Show.find({ screen: screenId, isDeleted: { $ne: true } })
-    .sort({ startTime: 1 })
-    .exec();
+  const query = Show.find({ screen: screenId });
+
+  if (includeDeleted) {
+    query.select("+isDeleted");
+  } else {
+    query.where({ isDeleted: { $ne: true } });
+  }
+
+  return query.sort({ startTime: 1 }).exec();
 };
 
 export const findShowsByMovie = async (
   movieId: string,
+  includeDeleted: boolean = false,
 ): Promise<ShowDocument[]> => {
-  return Show.find({ movie: movieId, isDeleted: { $ne: true } })
-    .sort({ startTime: 1 })
-    .exec();
+  const query = Show.find({ movie: movieId });
+  if (includeDeleted) {
+    query.select("+isDeleted");
+  } else {
+    query.where({ isDeleted: { $ne: true } });
+  }
+
+  return query.sort({ startTime: 1 }).exec();
 };
 
 export const findOverlappingShows = async (
@@ -47,7 +73,7 @@ export const findOverlappingShows = async (
   const query: any = {
     screen: screenId,
     isDeleted: { $ne: true },
-    status: { $ne: true },
+    status: { $ne: "cancelled" },
     startTime: { $lt: endTime },
     endTime: { $gt: startTime },
   };

@@ -38,10 +38,10 @@ const seatSchema = new Schema<ISeat>(
       type: Number,
       required: true,
       min: [0, "Price cannot be negative"],
-      isBroken: {
-        type: Boolean,
-        default: false,
-      },
+    },
+    isBroken: {
+      type: Boolean,
+      default: false,
     },
   },
   { _id: false }, // Prevents Mongoose from generating useless unique IDs for every single chair

@@ -12,38 +12,24 @@ interface MovieCardData {
 const TRENDING_MOVIES: MovieCardData[] = [
   {
     id: "1",
-    title: "Stellar Horizon",
-    genre: "Sci-Fi | Thriller",
+    title: "Karuppu",
+    genre: "Action | Thriller",
     rating: 8.7,
-    imageUrl: "./src/assets/Movie1.png",
+    imageUrl: "./Movie1.png",
   },
   {
     id: "2",
-    title: "Midnight Echoes",
+    title: "Obsess",
     genre: "Mystery | Drama",
     rating: 9.1,
-    imageUrl: "/images/midnight.jpg",
+    imageUrl: "./Movie 2.png",
   },
   {
     id: "3",
-    title: "Crimson Tide",
-    genre: "Action | Adventure",
+    title: "Beast of War",
+    genre: "Action | War",
     rating: 8.4,
-    imageUrl: "/images/crimson.jpg",
-  },
-  {
-    id: "4",
-    title: "Neon Shadows",
-    genre: "Cyberpunk | Noir",
-    rating: 8.9,
-    imageUrl: "/images/neon.jpg",
-  },
-  {
-    id: "5",
-    title: "The Last Frontier",
-    genre: "Western | Drama",
-    rating: 8.2,
-    imageUrl: "/images/frontier.jpg",
+    imageUrl: "./Movie 3.png",
   },
 ];
 

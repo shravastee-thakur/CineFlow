@@ -3,6 +3,7 @@ import mongoose, { Schema, Model } from "mongoose";
 export interface IShow {
   movie: mongoose.Types.ObjectId;
   screen: mongoose.Types.ObjectId;
+  theater: mongoose.Types.ObjectId;
   startTime: Date;
   endTime: Date;
   bookedSeats: string[];
@@ -23,6 +24,12 @@ const showSchema = new Schema<IShow>(
     screen: {
       type: Schema.Types.ObjectId,
       ref: "Screen",
+      required: true,
+      index: true,
+    },
+    theater: {
+      type: Schema.Types.ObjectId,
+      ref: "Theater",
       required: true,
       index: true,
     },
@@ -50,6 +57,7 @@ const showSchema = new Schema<IShow>(
 );
 
 showSchema.index({ screen: 1, startTime: 1 });
+showSchema.index({ theater: 1, startTime: 1 });
 
 const Show: Model<IShow> = mongoose.model<IShow>("Show", showSchema);
 export default Show;

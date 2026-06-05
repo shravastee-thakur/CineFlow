@@ -30,6 +30,46 @@ export const createShow = async (
   }
 };
 
+export const getShowsByTheater = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const theaterId = req.params.id as string;
+    const shows = await showService.findShowsByTheater(theaterId);
+
+    return res.status(200).json({
+      success: true,
+      data: shows,
+    });
+  } catch (error) {
+    logger.error(`Get Shows By Theater Error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getShowsByTheaterAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const theaterId = req.params.id as string;
+    const shows = await showService.findShowsByTheaterAdmin(theaterId);
+
+    return res.status(200).json({
+      success: true,
+      data: shows,
+    });
+  } catch (error) {
+    logger.error(
+      `Get Shows By Theater Admin Error: ${(error as Error).message}`,
+    );
+    next(error);
+  }
+};
+
 export const getShowById = async (
   req: Request,
   res: Response,
@@ -68,6 +108,27 @@ export const getShowsByScreen = async (
   }
 };
 
+export const getShowsByScreenAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const screenId = req.params.id as string;
+    const shows = await showService.findShowsByScreenAdmin(screenId);
+
+    return res.status(200).json({
+      success: true,
+      data: shows,
+    });
+  } catch (error) {
+    logger.error(
+      `Get Shows By Screen Admin Error: ${(error as Error).message}`,
+    );
+    next(error);
+  }
+};
+
 export const getShowsByMovie = async (
   req: Request,
   res: Response,
@@ -83,6 +144,25 @@ export const getShowsByMovie = async (
     });
   } catch (error) {
     logger.error(`Get Shows By Movie Error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getShowsByMovieAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const movieId = req.params.id as string;
+    const shows = await showService.findShowsByMovieAdmin(movieId);
+
+    return res.status(200).json({
+      success: true,
+      data: shows,
+    });
+  } catch (error) {
+    logger.error(`Get Shows By Movie Admin Error: ${(error as Error).message}`);
     next(error);
   }
 };

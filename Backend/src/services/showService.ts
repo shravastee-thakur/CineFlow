@@ -1,4 +1,5 @@
 import * as showRepo from "../repositories/showRepo.js";
+import * as screenRepo from "../repositories/screenRepo.js";
 import {
   ShowDocument,
   CreateShowData,
@@ -24,10 +25,20 @@ export interface ShowDto {
   updatedAt?: Date;
 }
 
-const mapToShowDto = (show: ShowDocument): ShowDto => {
+export interface ShowAdminDto extends ShowDto {
+  isDeleted: boolean;
+}
+
+function mapToShowDto(show: ShowDocument, isAdmin: true): ShowAdminDto;
+function mapToShowDto(show: ShowDocument, isAdmin?: false): ShowDto;
+
+function mapToShowDto(
+  show: ShowDocument,
+  isAdmin: boolean = false,
+): ShowDto | ShowAdminDto {
   const obj = show.toObject();
 
-  return {
+  const baseScreen: ShowDto = {
     _id: obj._id.toString(),
     movie: obj.movie.toString(),
     screen: obj.screen.toString(),
@@ -38,11 +49,23 @@ const mapToShowDto = (show: ShowDocument): ShowDto => {
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt,
   };
-};
+
+  if (isAdmin) {
+    return {
+      ...baseScreen,
+      isDeleted: obj.isDeleted,
+    } as ShowAdminDto;
+  }
+
+  return baseScreen;
+}
 
 export const createShow = async (
   showData: CreateShowInput,
 ): Promise<ShowDto> => {
+  const screen = await screenRepo.findScreenById(showData.screen);
+  if (!screen) throw new ApiError(404, "Screen not found");
+
   // Fetch the movie to get its duration
   const movie = await movieRepo.findMovieById(showData.movie);
   if (!movie) {
@@ -73,6 +96,7 @@ export const createShow = async (
 
   const repoPayload: CreateShowData = {
     movie: new mongoose.Types.ObjectId(showData.movie),
+    theater: screen.theater,
     screen: new mongoose.Types.ObjectId(showData.screen),
     startTime: new Date(showData.startTime),
     endTime: actualEndTime,
@@ -81,6 +105,20 @@ export const createShow = async (
   const show = await showRepo.createShow(repoPayload);
 
   return mapToShowDto(show);
+};
+
+export const findShowsByTheater = async (
+  theaterId: string,
+): Promise<ShowDto[]> => {
+  const shows = await showRepo.findShowsByTheater(theaterId);
+  return shows.map((s) => mapToShowDto(s), false);
+};
+
+export const findShowsByTheaterAdmin = async (
+  theaterId: string,
+): Promise<ShowDto[]> => {
+  const shows = await showRepo.findShowsByTheater(theaterId);
+  return shows.map((s) => mapToShowDto(s), true);
 };
 
 export const findShowById = async (showId: string): Promise<ShowDto | null> => {
@@ -94,13 +132,28 @@ export const findShowsByScreen = async (
   screenId: string,
 ): Promise<ShowDto[]> => {
   const shows = await showRepo.findShowsByScreen(screenId);
-  return shows.map(mapToShowDto);
+  return shows.map((s) => mapToShowDto(s), false);
+};
+
+export const findShowsByScreenAdmin = async (
+  screenId: string,
+): Promise<ShowDto[]> => {
+  const shows = await showRepo.findShowsByScreen(screenId);
+  return shows.map((s) => mapToShowDto(s), true);
 };
 
 export const findShowsByMovie = async (movieId: string): Promise<ShowDto[]> => {
   const shows = await showRepo.findShowsByMovie(movieId);
 
-  return shows.map(mapToShowDto);
+  return shows.map((s) => mapToShowDto(s), false);
+};
+
+export const findShowsByMovieAdmin = async (
+  movieId: string,
+): Promise<ShowDto[]> => {
+  const shows = await showRepo.findShowsByMovie(movieId);
+
+  return shows.map((s) => mapToShowDto(s), true);
 };
 
 export const updateShow = async (

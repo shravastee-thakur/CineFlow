@@ -1,4 +1,5 @@
 import * as theaterRepo from "../repositories/theaterRepo.js";
+import * as screenRepo from "../repositories/screenRepo.js";
 import {
   CreateTheaterData,
   TheaterDocument,
@@ -18,25 +19,52 @@ export interface TheaterDto {
   updatedAt?: Date;
 }
 
+export interface TheaterAdminDto extends TheaterDto {
+  isDeleted: Boolean;
+}
+
 export interface PaginatedTheaterResponse {
   theater: TheaterDto[];
   currentPage: number;
   totalPages: number;
   totalTheaters: number;
 }
+export interface PaginatedTheaterResponseAdmin {
+  theater: TheaterAdminDto[];
+  currentPage: number;
+  totalPages: number;
+  totalTheaters: number;
+}
 
-const mapToTheaterDto = (theater: TheaterDocument): TheaterDto => {
+function mapToTheaterDto(
+  theater: TheaterDocument,
+  isAdmin: true,
+): TheaterAdminDto;
+function mapToTheaterDto(theater: TheaterDocument, isAdmin?: false): TheaterDto;
+function mapToTheaterDto(
+  theater: TheaterDocument,
+  isAdmin: boolean = false,
+): TheaterDto | TheaterAdminDto {
   const obj = theater.toObject();
-  return {
+
+  const baseTheater: TheaterDto = {
     _id: obj._id.toString(),
     name: obj.name,
     location: obj.location,
     city: obj.city,
-    // state: obj.state,
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt,
   };
-};
+
+  if (isAdmin) {
+    return {
+      ...baseTheater,
+      isDeleted: obj.isDeleted ?? false,
+    } as TheaterAdminDto;
+  }
+
+  return baseTheater;
+}
 
 export const createTheater = async (
   theaterData: TheaterDetailInput,
@@ -54,13 +82,30 @@ export const findAllTheaters = async (
   page: number,
   limit: number,
 ): Promise<PaginatedTheaterResponse> => {
-  const totalTheaters = await theaterRepo.countAllTheaters();
-  const theaters = await theaterRepo.findAllTheaters(page, limit);
+  const totalTheaters = await theaterRepo.countTheaters(false);
+  const theaters = await theaterRepo.findAllTheaters(page, limit, false);
 
   const totalPages = Math.ceil(totalTheaters / limit);
 
   return {
-    theater: theaters.map(mapToTheaterDto),
+    theater: theaters.map((t) => mapToTheaterDto(t, false)),
+    currentPage: page,
+    totalPages,
+    totalTheaters,
+  };
+};
+
+export const findAllTheatersAdmin = async (
+  page: number,
+  limit: number,
+): Promise<PaginatedTheaterResponseAdmin> => {
+  const totalTheaters = await theaterRepo.countTheaters(true);
+  const theaters = await theaterRepo.findAllTheaters(page, limit, true);
+
+  const totalPages = Math.ceil(totalTheaters / limit);
+
+  return {
+    theater: theaters.map((t) => mapToTheaterDto(t, true)),
     currentPage: page,
     totalPages,
     totalTheaters,
@@ -76,20 +121,13 @@ export const findTheaterById = async (
   return mapToTheaterDto(theater);
 };
 
-// export const findTheaterByState = async (
-//   state: string,
-// ): Promise<TheaterDto[]> => {
-//   const theaters = await theaterRepo.findTheaterByState(state);
-//   if (!theaters) throw new ApiError(404, "Theater not found");
-//   return theaters.map(mapToTheaterDto);
-// };
 
 export const findTheaterByCity = async (
   city: string,
 ): Promise<TheaterDto[]> => {
   const theaters = await theaterRepo.findTheaterByCity(city);
   if (!theaters) throw new ApiError(404, "Theater not found");
-  return theaters.map(mapToTheaterDto);
+  return theaters.map((t) => mapToTheaterDto(t, false));
 };
 
 export const updateTheater = async (
@@ -107,12 +145,22 @@ export const updateTheater = async (
 
 export const deleteTheater = async (
   theaterId: string,
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean; screensAffected?: number }> => {
   const theater = await theaterRepo.findTheaterById(theaterId);
   if (!theater) throw new ApiError(404, "Theater not found");
 
   theater.isDeleted = true;
   await theater.save();
 
-  return { success: true };
+   const { modifiedCount } = await screenRepo.softDeleteScreensByTheater(theaterId);
+
+  return { success: true , screensAffected: modifiedCount};
+};
+
+export const restoreTheater = async (
+  theaterId: string,
+): Promise<TheaterDto> => {
+  const theater = await theaterRepo.restoreTheater(theaterId);
+  if (!theater) throw new ApiError(404, "Theater not found");
+  return mapToTheaterDto(theater);
 };

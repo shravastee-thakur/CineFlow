@@ -14,9 +14,31 @@ router.post(
 
 router.get("/getShowById/:id", showController.getShowById);
 
+router.get("/getShowsByTheater/:id", showController.getShowsByTheater);
+router.get(
+  "/getShowsByTheaterAdmin/:id",
+  authenticate,
+  allowRole("admin"),
+  showController.getShowsByTheaterAdmin,
+);
+
 router.get("/getShowsByScreen/:id", showController.getShowsByScreen);
 
+router.get(
+  "/getShowsByScreenAdmin/:id",
+  authenticate,
+  allowRole("admin"),
+  showController.getShowsByScreenAdmin,
+);
+
 router.get("/getShowsByMovie/:id", showController.getShowsByMovie);
+
+router.get(
+  "/getShowsByMovieAdmin/:id",
+  authenticate,
+  allowRole("admin"),
+  showController.getShowsByMovie,
+);
 
 router.put(
   "/updateShow/:id",

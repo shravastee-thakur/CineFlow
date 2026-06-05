@@ -16,26 +16,27 @@ export const createTheater = async (
 export const findAllTheaters = async (
   page: number = 1,
   limit: number = 10,
+  includeDeleted: boolean = false,
 ): Promise<TheaterDocument[]> => {
   const skip = (page - 1) * limit;
-  return Theater.find({ isDeleted: { $ne: true } })
-    .skip(skip)
-    .limit(limit)
-    .exec();
+
+  const query = Theater.find();
+
+  if (includeDeleted) {
+    query.select("+isDeleted");
+  } else {
+    query.where({ isDeleted: { $ne: true } });
+  }
+
+  return query.skip(skip).limit(limit).exec();
 };
 
-export const findAllTheatersAdmin = async (
-  page: number = 1,
-  limit: number = 10,
-): Promise<TheaterDocument[]> => {
-  const skip = (page - 1) * limit;
-  return Theater.find()
-    .skip(skip)
-    .limit(limit)
-    .exec();
-};
-
-export const countAllTheaters = (): Promise<number> => {
+export const countTheaters = async (
+  includeDeleted: boolean = false,
+): Promise<number> => {
+  if (includeDeleted) {
+    return Theater.countDocuments({}).exec();
+  }
   return Theater.countDocuments({ isDeleted: { $ne: true } }).exec();
 };
 
@@ -61,19 +62,6 @@ export const findTheaterById = async (
   }).exec();
 };
 
-// export const findTheaterByState = async (
-//   state: string,
-// ): Promise<TheaterDocument[]> => {
-//   const escapeRegex = (text: string) =>
-//     text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-
-//   const safeState = escapeRegex(state);
-//   return Theater.find({
-//     state: RegExp(`^${safeState}$`, "i"),
-//     isDeleted: { $ne: true },
-//   }).exec();
-// };
-
 export const findTheaterByCity = async (
   city: string,
 ): Promise<TheaterDocument[]> => {
@@ -95,4 +83,14 @@ export const updateTheater = async (
     new: true,
     runValidators: true,
   }).exec();
+};
+
+export const restoreTheater = async (
+  theaterId: string,
+): Promise<TheaterDocument | null> => {
+  return Theater.findByIdAndUpdate(
+    theaterId,
+    { isDeleted: false },
+    { new: true, runValidators: true },
+  ).exec();
 };

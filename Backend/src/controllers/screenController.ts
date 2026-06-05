@@ -55,6 +55,27 @@ export const getScreensByTheater = async (
   }
 };
 
+export const getScreensByTheaterAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const theaterId = req.params.id as string;
+    const screens = await screenService.findScreensByTheaterAdmin(theaterId);
+
+    return res.status(200).json({
+      success: true,
+      data: screens,
+    });
+  } catch (error) {
+    logger.error(
+      `Get Screen By Theater Admin error: ${(error as Error).message}`,
+    );
+    next(error);
+  }
+};
+
 export const getScreenById = async (
   req: Request,
   res: Response,

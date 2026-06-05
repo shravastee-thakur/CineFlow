@@ -1,6 +1,6 @@
 import * as screenRepo from "../repositories/screenRepo.js";
 import {
-  ScreeDocument,
+  ScreenDocument,
   CreateScreenData,
   UpdateScreenData,
 } from "../repositories/screenRepo.js";
@@ -29,10 +29,19 @@ export interface ScreenDto {
   updatedAt?: Date;
 }
 
-const mapToScreenDto = (screen: ScreeDocument): ScreenDto => {
+export interface ScreenAdminDto extends ScreenDto {
+  isDeleted: Boolean;
+}
+
+function mapToScreenDto(screen: ScreenDocument, isAdmin: true): ScreenAdminDto;
+function mapToScreenDto(screen: ScreenDocument, isAdmin?: false): ScreenDto;
+function mapToScreenDto(
+  screen: ScreenDocument,
+  isAdmin: boolean = false,
+): ScreenDto | ScreenAdminDto {
   const obj = screen.toObject();
 
-  return {
+  const baseScreen: ScreenDto = {
     _id: obj._id.toString(),
     theater: obj.theater.toString(),
     name: obj.name,
@@ -50,7 +59,16 @@ const mapToScreenDto = (screen: ScreeDocument): ScreenDto => {
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt,
   };
-};
+
+  if (isAdmin) {
+    return {
+      ...baseScreen,
+      isDeleted: obj.isDeleted,
+    } as ScreenAdminDto;
+  }
+
+  return baseScreen;
+}
 
 export const createScreen = async (
   screenData: CreateScreenData,
@@ -75,7 +93,14 @@ export const findScreensByTheater = async (
   theaterId: string,
 ): Promise<ScreenDto[]> => {
   const screens = await screenRepo.findScreensByTheater(theaterId);
-  return screens.map(mapToScreenDto);
+  return screens.map((s) => mapToScreenDto(s, false));
+};
+
+export const findScreensByTheaterAdmin = async (
+  theaterId: string,
+): Promise<ScreenAdminDto[]> => {
+  const screens = await screenRepo.findScreensByTheater(theaterId);
+  return screens.map((s) => mapToScreenDto(s, true));
 };
 
 export const findScreenById = async (

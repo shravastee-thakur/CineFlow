@@ -15,6 +15,7 @@ export interface AuthState {
   accessToken: string | null;
   isVerified: boolean;
   role: string | null;
+  selectedTheaterId: string | null;
 
   setUserId: (id: string | null) => void;
   setUserInfo: (info: UserInfo | null) => void;
@@ -32,14 +33,21 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       isVerified: false,
       role: null,
+      selectedTheaterId: null,
 
       setUserId: (id) => set({ userId: id }),
       setUserInfo: (info) => set({ userInfo: info }),
       setAccessToken: (token) => set({ accessToken: token }),
       setIsVerified: (status) => set({ isVerified: status }),
       setRole: (role) => set({ role: role }),
+
       clearAuth: () =>
-        set({ userId: null, accessToken: null, isVerified: false }),
+        set({
+          userId: null,
+          accessToken: null,
+          isVerified: false,
+          selectedTheaterId: null,
+        }),
     }),
     {
       name: "auth-storage",

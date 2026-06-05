@@ -53,6 +53,27 @@ export const getAllTheaters = async (
   }
 };
 
+export const getAllTheatersAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const rawPage = parseInt(req.query.page as string, 10);
+    const rawLimit = parseInt(req.query.limit as string, 10);
+
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
+
+    const theaters = await theaterService.findAllTheatersAdmin(page, limit);
+
+    return res.status(200).json({ success: true, data: theaters });
+  } catch (error) {
+    logger.error(`Get All Theaters Admin error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
 export const getTheaterById = async (
   req: Request,
   res: Response,
@@ -118,13 +139,11 @@ export const updateTheater = async (
     );
     logger.info(`Theater updated successfully: ${theater.name}`);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Theater updated successfuly",
-        data: theater,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Theater updated successfuly",
+      data: theater,
+    });
   } catch (error) {
     logger.error(`Update Theater error: ${(error as Error).message}`);
     next(error);
@@ -140,7 +159,10 @@ export const deleteTheater = async (
     const theaterId = req.params.id as string;
 
     const result = await theaterService.deleteTheater(theaterId);
-    logger.info(`Theater soft deleted successfully: ${theaterId}`);
+
+    logger.info(
+      `Theater ${theaterId} soft deleted. ${result.screensAffected} screens cascade deleted.`,
+    );
 
     return res.status(200).json({
       success: true,
@@ -149,6 +171,26 @@ export const deleteTheater = async (
     });
   } catch (error) {
     logger.error(`Delete Theater error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const restoreTheater = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const theaterId = req.params.id as string;
+    const theater = await theaterService.restoreTheater(theaterId);
+    logger.info(`Theater restored: ${theaterId}`);
+    return res.status(200).json({
+      success: true,
+      message: "Theater restored successfully",
+      data: theater,
+    });
+  } catch (error) {
+    logger.error(`Restore Theater error: ${(error as Error).message}`);
     next(error);
   }
 };

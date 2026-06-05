@@ -14,6 +14,13 @@ router.post(
 
 router.get("/getAllTheaters", theaterController.getAllTheaters);
 
+router.get(
+  "/getAllTheatersAdmin",
+  authenticate,
+  allowRole("admin"),
+  theaterController.getAllTheatersAdmin,
+);
+
 router.get("/getTheaterById/:id", theaterController.getTheaterById);
 
 router.get("/getTheaterByCity/:city", theaterController.getTheaterByCity);
@@ -30,6 +37,13 @@ router.delete(
   authenticate,
   allowRole("admin"),
   theaterController.deleteTheater,
+);
+
+router.put(
+  "/restoreTheater/:id",
+  authenticate,
+  allowRole("admin"),
+  theaterController.restoreTheater,
 );
 
 export default router;

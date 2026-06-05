@@ -16,7 +16,12 @@ router.post(
 
 router.get("/getAllMoviesUser", movieController.getAllMoviesUser);
 
-router.get("/getAllMoviesadmin", movieController.getAllMoviesAdmin);
+router.get(
+  "/getAllMoviesAdmin",
+  authenticate,
+  allowRole("admin"),
+  movieController.getAllMoviesAdmin,
+);
 
 router.get("/getMovieById/:id", movieController.getMovieById);
 

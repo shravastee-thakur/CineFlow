@@ -1,56 +1,177 @@
 import { useState, useEffect, useCallback } from "react";
-import { Edit2, Trash2, X } from "lucide-react";
+import { Edit2, Trash2, X, Filter, RefreshCw, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
+import { useShowStore } from "../../store/showStore";
 
 interface Show {
   _id: string;
   movie: { _id: string; title: string };
-  screen: { _id: string; name: string };
+  screen: { _id: string; name: string; theater: { _id: string; name: string } };
   startTime: string;
+  endTime: string;
+  status: "scheduled" | "cancelled" | "completed";
+  bookedSeats: string[];
+  isDeleted?: boolean;
+}
+
+interface Movie {
+  _id: string;
+  title: string;
+}
+
+interface Screen {
+  _id: string;
+  name: string;
+  theater: { _id: string; name: string };
 }
 
 export default function ShowManager() {
+  const {
+    selectedTheaterId,
+    selectedScreenId,
+    selectedMovieId,
+    showCancelled,
+    includeDeleted,
+    setSelectedTheater,
+    setScreen,
+    setMovie,
+    toggleCancelled,
+    toggleIncludeDeleted,
+    clearFilters,
+  } = useShowStore();
+
   const [shows, setShows] = useState<Show[]>([]);
-  const [movies, setMovies] = useState<{ _id: string; title: string }[]>([]);
-  const [screens, setScreens] = useState<{ _id: string; name: string }[]>([]);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [screens, setScreens] = useState<Screen[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Show | null>(null);
   const [form, setForm] = useState({ movie: "", screen: "", startTime: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  // Fetch screens for the selected theater (for dropdown)
+  const fetchScreens = useCallback(async () => {
+    if (!selectedTheaterId) {
+      setScreens([]);
+      return;
+    }
     try {
-      const [showsRes, moviesRes, screensRes] = await Promise.all([
-        api.get("/api/v1/admin/shows"),
-        api.get("/api/v1/admin/movies?select=title"),
-        api.get("/api/v1/admin/screens?select=name"),
-      ]);
-      setShows(showsRes.data.shows);
-      setMovies(moviesRes.data.movies);
-      setScreens(screensRes.data.screens);
-    } catch {
-      toast.error("Failed to load data");
+      const res = await api.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/getScreensByTheaterAdmin/${selectedTheaterId}`,
+      );
+
+      const data = res.data.data || res.data.screens || [];
+      setScreens(data);
+
+      if (
+        selectedScreenId &&
+        !data.find((s: Screen) => s._id === selectedScreenId)
+      ) {
+        setScreen(null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to load screens");
+    }
+  }, [selectedTheaterId, selectedScreenId, setScreen]);
+
+  // Fetch movies for dropdown
+  const fetchMovies = useCallback(async () => {
+    try {
+      const res = await api.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesAdmin`,
+        {
+          params: { page: 1, limit: 10, select: "title" },
+        },
+      );
+      const data = res.data.data.movies;
+      setMovies(data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to load movies");
     }
   }, []);
 
+  // Fetch shows based on screenId OR movieId filter
+  const fetchShows = useCallback(async () => {
+    setIsFetching(true);
+    try {
+      const params: Record<string, string> = {};
+
+      // Filter by screen OR movie (mutually exclusive in your backend)
+      if (selectedScreenId) {
+        params.screen = selectedScreenId;
+      } else if (selectedMovieId) {
+        params.movie = selectedMovieId;
+      }
+
+      // Admin-only flags
+      if (includeDeleted) params.includeDeleted = "true";
+      if (!showCancelled) params.excludeCancelled = "true"; // Hide cancelled by default for cleaner admin view
+
+      const res = await api.get("/api/v1/admin/shows", { params });
+      const data = res.data.data?.shows || res.data.data || [];
+      setShows(data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to load shows");
+    } finally {
+      setIsFetching(false);
+    }
+  }, [selectedScreenId, selectedMovieId, includeDeleted, showCancelled]);
+
+  // Initial load
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchMovies();
+  }, [fetchMovies]);
+
+  // Fetch screens when theater changes
+  useEffect(() => {
+    if (selectedTheaterId) {
+      fetchScreens();
+    } else {
+      setScreens([]);
+      setScreen(null);
+    }
+  }, [selectedTheaterId, fetchScreens, setScreen]);
+
+  // Fetch shows when filters change
+  useEffect(() => {
+    fetchShows();
+  }, [fetchShows]);
+
+  // Sync form when store changes
+  useEffect(() => {
+    if (selectedScreenId)
+      setForm((prev) => ({ ...prev, screen: selectedScreenId }));
+  }, [selectedScreenId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.movie || !form.screen || !form.startTime)
+    if (!form.movie || !form.screen || !form.startTime) {
       return toast.error("All fields are required");
+    }
+    // Validate screen belongs to selected theater
+    const selectedScreen = screens.find((s) => s._id === form.screen);
+    if (
+      selectedTheaterId &&
+      selectedScreen?.theater._id !== selectedTheaterId
+    ) {
+      return toast.error(
+        "Selected screen does not belong to the selected theater",
+      );
+    }
     setIsLoading(true);
     try {
-      if (editing) await api.put(`/api/v1/admin/shows/${editing._id}`, form);
-      else await api.post("/api/v1/admin/shows", form);
-      toast.success(editing ? "Show updated" : "Show created");
+      if (editing) {
+        await api.put(`/api/v1/admin/shows/${editing._id}`, form);
+        toast.success("Show updated successfully");
+      } else {
+        await api.post("/api/v1/admin/shows", form);
+        toast.success("Show created successfully");
+      }
       setIsModalOpen(false);
       setForm({ movie: "", screen: "", startTime: "" });
       setEditing(null);
-      fetchData();
+      fetchShows();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Operation failed");
     } finally {
@@ -59,13 +180,14 @@ export default function ShowManager() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this show?")) return;
+    if (!confirm("Cancel this show? This will release all booked seats."))
+      return;
     try {
       await api.patch(`/api/v1/admin/shows/${id}/cancel`);
-      toast.success("Show cancelled");
-      fetchData();
-    } catch {
-      toast.error("Cancel failed");
+      toast.success("Show cancelled successfully");
+      fetchShows();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Cancel failed");
     }
   };
 
@@ -73,72 +195,266 @@ export default function ShowManager() {
     new Date(iso).toLocaleString("en-IN", {
       dateStyle: "medium",
       timeStyle: "short",
+      hour12: true,
     });
+
+  const activeFilterCount = [selectedScreenId, selectedMovieId].filter(
+    Boolean,
+  ).length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Manage Shows</h2>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setForm({ movie: "", screen: "", startTime: "" });
-            setIsModalOpen(true);
-          }}
-          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium rounded-lg transition-colors"
-        >
-          + Add Show
-        </button>
+      {/* Header with Filters */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-white">Manage Shows</h2>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Theater Selector (for screen filtering only) */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select
+              value={selectedTheaterId || ""}
+              onChange={(e) => setSelectedTheater(e.target.value || null)}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 focus:outline-none min-w-[150px]"
+            >
+              <option value="">All Theaters</option>
+              {/* You would fetch theaters here if needed for the dropdown */}
+            </select>
+          </div>
+
+          {/* Screen Filter */}
+          <select
+            value={selectedScreenId || ""}
+            onChange={(e) => setScreen(e.target.value || null)}
+            disabled={!selectedTheaterId}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 focus:outline-none min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">All Screens</option>
+            {screens.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Movie Filter */}
+          <select
+            value={selectedMovieId || ""}
+            onChange={(e) => setMovie(e.target.value || null)}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 focus:outline-none min-w-[150px]"
+          >
+            <option value="">All Movies</option>
+            {movies.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.title}
+              </option>
+            ))}
+          </select>
+
+          {/* Toggle: Hide/Show Cancelled Shows */}
+          <button
+            onClick={toggleCancelled}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${
+              showCancelled
+                ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                : "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+            }`}
+            title={
+              showCancelled ? "Show cancelled shows" : "Hide cancelled shows"
+            }
+          >
+            {showCancelled ? (
+              <Eye className="w-4 h-4" />
+            ) : (
+              <EyeOff className="w-4 h-4" />
+            )}
+            {showCancelled ? "Show Cancelled" : "Hide Cancelled"}
+          </button>
+
+          {/* Admin-only: Toggle Soft-Deleted Shows */}
+          <button
+            onClick={toggleIncludeDeleted}
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${
+              includeDeleted
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+            }`}
+            title={
+              includeDeleted
+                ? "Hide soft-deleted shows"
+                : "Show soft-deleted shows"
+            }
+          >
+            {includeDeleted ? (
+              <Eye className="w-4 h-4" />
+            ) : (
+              <EyeOff className="w-4 h-4" />
+            )}
+            {includeDeleted ? "Show Deleted" : "Hide Deleted"}
+          </button>
+
+          {/* Add Show Button */}
+          <button
+            onClick={() => {
+              if (!selectedTheaterId) {
+                return toast.error("Please select a theater first");
+              }
+              setEditing(null);
+              setForm({ movie: "", screen: "", startTime: "" });
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium rounded-lg transition-colors"
+          >
+            + Add Show
+          </button>
+        </div>
       </div>
 
+      {/* Shows Table */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-800/50 text-slate-300">
             <tr>
               <th className="px-4 py-3">Movie</th>
               <th className="px-4 py-3">Screen</th>
+              <th className="px-4 py-3">Theater</th>
               <th className="px-4 py-3">Time</th>
+              <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {shows.map((show) => (
-              <tr key={show._id} className="hover:bg-slate-800/30">
-                <td className="px-4 py-3 font-medium text-white">
-                  {show.movie.title}
-                </td>
-                <td className="px-4 py-3 text-slate-400">{show.screen.name}</td>
-                <td className="px-4 py-3 text-slate-300">
-                  {formatDate(show.startTime)}
-                </td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <button
-                    onClick={() => {
-                      setEditing(show);
-                      setForm({
-                        movie: show.movie._id,
-                        screen: show.screen._id,
-                        startTime: show.startTime.slice(0, 16),
-                      });
-                      setIsModalOpen(true);
-                    }}
-                    className="text-slate-400 hover:text-amber-400"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleCancel(show._id)}
-                    className="text-slate-400 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+            {isFetching ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center">
+                  <div className="flex items-center justify-center gap-2 text-slate-400">
+                    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                    Loading shows...
+                  </div>
                 </td>
               </tr>
-            ))}
+            ) : shows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-12 text-center text-slate-500"
+                >
+                  <p className="text-lg font-medium mb-1">No shows found</p>
+                  <p className="text-sm">
+                    {activeFilterCount > 0
+                      ? "Try adjusting your filters or clear them to see all shows."
+                      : "Add your first show to get started."}
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              shows.map((show) => (
+                <tr
+                  key={show._id}
+                  className={`hover:bg-slate-800/30 transition-colors ${
+                    show.isDeleted ? "bg-slate-900/70" : ""
+                  } ${show.status === "cancelled" ? "bg-red-900/10" : ""}`}
+                >
+                  <td
+                    className={`px-4 py-3 font-medium ${
+                      show.isDeleted
+                        ? "text-slate-500 line-through"
+                        : "text-white"
+                    }`}
+                  >
+                    {show.movie.title}
+                  </td>
+                  <td
+                    className={`px-4 py-3 ${
+                      show.isDeleted ? "text-slate-600" : "text-slate-400"
+                    }`}
+                  >
+                    {show.screen.name}
+                  </td>
+                  <td className="px-4 py-3 text-slate-400">
+                    {show.screen.theater.name}
+                  </td>
+                  <td
+                    className={`px-4 py-3 ${
+                      show.isDeleted ? "text-slate-600" : "text-slate-300"
+                    }`}
+                  >
+                    {formatDate(show.startTime)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {show.isDeleted && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-slate-500/10 text-slate-400 rounded-full border border-slate-500/20">
+                          Deleted
+                        </span>
+                      )}
+                      {show.status === "cancelled" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-500/10 text-red-400 rounded-full border border-red-500/20">
+                          Cancelled
+                        </span>
+                      ) : show.status === "completed" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-slate-500/10 text-slate-400 rounded-full border border-slate-500/20">
+                          Completed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
+                          Scheduled
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right space-x-2">
+                    {/* Soft-deleted or completed shows: read-only */}
+                    {show.isDeleted || show.status === "completed" ? (
+                      <span className="text-xs text-slate-500 italic">
+                        Read-only
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditing(show);
+                            setForm({
+                              movie: show.movie._id,
+                              screen: show.screen._id,
+                              startTime: show.startTime.slice(0, 16),
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="text-slate-400 hover:text-amber-400 transition-colors p-1"
+                          title="Edit show"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleCancel(show._id)}
+                          className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                          title="Cancel show"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Modal for Add/Edit */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -154,12 +470,13 @@ export default function ShowManager() {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Movie Select */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Movie *
@@ -178,6 +495,8 @@ export default function ShowManager() {
                   ))}
                 </select>
               </div>
+
+              {/* Screen Select - filtered by theater */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Screen *
@@ -187,15 +506,30 @@ export default function ShowManager() {
                   onChange={(e) => setForm({ ...form, screen: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
                   required
+                  disabled={!selectedTheaterId || screens.length === 0}
                 >
-                  <option value="">Select Screen</option>
-                  {screens.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name}
-                    </option>
-                  ))}
+                  <option value="">
+                    {!selectedTheaterId
+                      ? "Select a theater first"
+                      : screens.length === 0
+                        ? "No screens available"
+                        : "Select Screen"}
+                  </option>
+                  {screens
+                    .filter(
+                      (s) =>
+                        !selectedTheaterId ||
+                        s.theater._id === selectedTheaterId,
+                    )
+                    .map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name}
+                      </option>
+                    ))}
                 </select>
               </div>
+
+              {/* Start Time */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Start Time *
@@ -208,20 +542,27 @@ export default function ShowManager() {
                   }
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-amber-500 focus:outline-none"
                   required
+                  min={new Date().toISOString().slice(0, 16)}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  End time calculated automatically (movie duration + 15 min
+                  buffer)
+                </p>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-6 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-slate-950 font-medium rounded-lg transition-colors"
+                  className="px-6 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 disabled:cursor-not-allowed text-slate-950 font-medium rounded-lg transition-colors"
                 >
                   {isLoading ? "Saving..." : editing ? "Update" : "Create"}
                 </button>

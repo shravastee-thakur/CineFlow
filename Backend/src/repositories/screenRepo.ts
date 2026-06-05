@@ -1,7 +1,7 @@
 import Screen, { IScreen } from "../models/screenModel.js";
 import { HydratedDocument } from "mongoose";
 
-export type ScreeDocument = HydratedDocument<IScreen>;
+export type ScreenDocument = HydratedDocument<IScreen>;
 
 export type CreateScreenData = Pick<
   IScreen,
@@ -12,29 +12,35 @@ export type UpdateScreenData = Partial<CreateScreenData>;
 
 export const createScreen = async (
   data: CreateScreenData,
-): Promise<ScreeDocument> => {
+): Promise<ScreenDocument> => {
   return Screen.create(data);
 };
 
 export const findScreenById = async (
   screenId: string,
-): Promise<ScreeDocument | null> => {
+): Promise<ScreenDocument | null> => {
   return Screen.findOne({ _id: screenId, isDeleted: { $ne: true } }).exec();
 };
 
 export const findScreensByTheater = async (
   theaterId: string,
-): Promise<ScreeDocument[]> => {
-  return await Screen.find({
-    theater: theaterId,
-    isDeleted: { $ne: true },
-  }).exec();
+  includeDeleted: boolean = false,
+): Promise<ScreenDocument[]> => {
+  const query = Screen.find({ theater: theaterId });
+
+  if (includeDeleted) {
+    query.select("+isDeleted");
+  } else {
+    query.where({ isDeleted: { $ne: true } });
+  }
+
+  return query.exec();
 };
 
 export const findScreenByNameInTheater = async (
   theaterId: string,
   name: string,
-): Promise<ScreeDocument | null> => {
+): Promise<ScreenDocument | null> => {
   const escapeRegex = (text: string) =>
     text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
@@ -45,4 +51,14 @@ export const findScreenByNameInTheater = async (
     name: new RegExp(`^${safeName}$`, "i"),
     isDeleted: { $ne: true },
   }).exec();
+};
+
+export const softDeleteScreensByTheater = async (
+  theaterId: string,
+): Promise<{ modifiedCount: number }> => {
+  const result = await Screen.updateMany(
+    { theater: theaterId, isDeleted: false },
+    { $set: { isDeleted: true } },
+  );
+  return { modifiedCount: result.modifiedCount };
 };

@@ -14,6 +14,13 @@ router.post(
 
 router.get("/getScreensByTheater/:id", screenController.getScreensByTheater);
 
+router.get(
+  "/getScreensByTheaterAdmin/:id",
+  authenticate,
+  allowRole("admin"),
+  screenController.getScreensByTheaterAdmin,
+);
+
 router.get("/getScreenById/:id", screenController.getScreenById);
 
 router.put(

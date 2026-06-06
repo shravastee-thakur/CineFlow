@@ -74,7 +74,7 @@ export default function ScreenManager() {
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/getScreensByTheaterAdmin/${selectedTheaterId}`,
       );
-      console.log("Screen", res);
+      console.log(res);
 
       const screensData = res.data.data || [];
       setScreens(screensData);
@@ -284,7 +284,7 @@ export default function ScreenManager() {
           </select>
           {selectedTheater && (
             <span className="text-sm text-slate-400">
-              Managing:{" "}
+              Managing:
               <span className="text-white font-medium">
                 {selectedTheater.name}
               </span>

@@ -37,7 +37,7 @@ router.get(
   "/getShowsByMovieAdmin/:id",
   authenticate,
   allowRole("admin"),
-  showController.getShowsByMovie,
+  showController.getShowsByMovieAdmin,
 );
 
 router.put(

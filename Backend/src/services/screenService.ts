@@ -92,14 +92,14 @@ export const createScreen = async (
 export const findScreensByTheater = async (
   theaterId: string,
 ): Promise<ScreenDto[]> => {
-  const screens = await screenRepo.findScreensByTheater(theaterId);
+  const screens = await screenRepo.findScreensByTheater(theaterId, false);
   return screens.map((s) => mapToScreenDto(s, false));
 };
 
 export const findScreensByTheaterAdmin = async (
   theaterId: string,
 ): Promise<ScreenAdminDto[]> => {
-  const screens = await screenRepo.findScreensByTheater(theaterId);
+  const screens = await screenRepo.findScreensByTheater(theaterId, true);
   return screens.map((s) => mapToScreenDto(s, true));
 };
 

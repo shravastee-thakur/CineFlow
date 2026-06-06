@@ -46,10 +46,10 @@ export const useShowStore = create<ShowState>()(
       name: "show-manager-filters",
       storage: createJSONStorage(() => localStorage),
       // // Persist ONLY theater and screen selection between refreshes
-      // partialize: (state) => ({
-      //   selectedTheaterId: state.selectedTheaterId,
-      //   selectedScreenId: state.selectedScreenId,
-      // }),
+      partialize: (state) => ({
+        selectedTheaterId: state.selectedTheaterId,
+        // selectedScreenId: state.selectedScreenId,
+      }),
     },
   ),
 );

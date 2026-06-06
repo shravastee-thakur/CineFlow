@@ -4,15 +4,21 @@ import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
 import { useShowStore } from "../../store/showStore";
 
+interface Theater {
+  _id: string;
+  name: string;
+}
+
 interface Show {
   _id: string;
-  movie: { _id: string; title: string };
-  screen: { _id: string; name: string; theater: { _id: string; name: string } };
+  movie: string;
+  screen: string;
+  theater: string;
   startTime: string;
   endTime: string;
   status: "scheduled" | "cancelled" | "completed";
   bookedSeats: string[];
-  isDeleted?: boolean;
+  isDeleted: boolean;
 }
 
 interface Movie {
@@ -23,8 +29,19 @@ interface Movie {
 interface Screen {
   _id: string;
   name: string;
-  theater: { _id: string; name: string };
+  theater: string;
 }
+
+const toastSuccessStyle = {
+  borderRadius: "10px",
+  background: "#AAFFC7",
+  color: "#333",
+};
+const toastErrorStyle = {
+  borderRadius: "10px",
+  background: "#FFC7C7",
+  color: "#333",
+};
 
 export default function ShowManager() {
   const {
@@ -44,13 +61,42 @@ export default function ShowManager() {
   const [shows, setShows] = useState<Show[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [screens, setScreens] = useState<Screen[]>([]);
+  const [theaters, setTheaters] = useState<Theater[]>([]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Show | null>(null);
   const [form, setForm] = useState({ movie: "", screen: "", startTime: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
-  // Fetch screens for the selected theater (for dropdown)
+  const getMovieTitle = (id: string) =>
+    movies.find((m) => m._id === id)?.title || "Unknown Movie";
+  const getScreenName = (id: string) =>
+    screens.find((s) => s._id === id)?.name || "Unknown Screen";
+  const getTheaterName = (id: string) =>
+    theaters.find((t) => t._id === id)?.name || "Unknown Theater";
+
+
+
+  // for drop down
+  const fetchTheaters = useCallback(async () => {
+    try {
+      const res = await api.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheatersAdmin`,
+        { params: { page: 1, limit: 100 } },
+      );
+      const data = res.data.data?.theater || [];
+
+      setTheaters(data);
+
+      // Removed the forced auto-select trap. The admin must explicitly choose a filter.
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to load theaters", {
+        style: toastErrorStyle,
+      });
+    }
+  }, []);
+
   const fetchScreens = useCallback(async () => {
     if (!selectedTheaterId) {
       setScreens([]);
@@ -60,120 +106,135 @@ export default function ShowManager() {
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/getScreensByTheaterAdmin/${selectedTheaterId}`,
       );
-
       const data = res.data.data || res.data.screens || [];
       setScreens(data);
-
       if (
         selectedScreenId &&
         !data.find((s: Screen) => s._id === selectedScreenId)
-      ) {
+      )
         setScreen(null);
-      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to load screens");
+      toast.error(err.response?.data?.message || "Failed to load screens", {
+        style: toastErrorStyle,
+      });
     }
   }, [selectedTheaterId, selectedScreenId, setScreen]);
 
-  // Fetch movies for dropdown
   const fetchMovies = useCallback(async () => {
     try {
       const res = await api.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesAdmin`,
-        {
-          params: { page: 1, limit: 10, select: "title" },
-        },
+        { params: { page: 1, limit: 100, select: "title" } },
       );
-      const data = res.data.data.movies;
-      setMovies(data);
+      setMovies(res.data.data?.movies || []);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to load movies");
+      toast.error(err.response?.data?.message || "Failed to load movies", {
+        style: toastErrorStyle,
+      });
     }
   }, []);
 
-  // Fetch shows based on screenId OR movieId filter
   const fetchShows = useCallback(async () => {
+    // If no filters are selected, do not fetch a massive global list of shows
+    if (!selectedTheaterId && !selectedScreenId && !selectedMovieId) {
+      setShows([]);
+      return;
+    }
+
     setIsFetching(true);
     try {
-      const params: Record<string, string> = {};
+      let url = "";
+      if (selectedScreenId)
+        url = `/api/v1/shows/getShowsByScreenAdmin/${selectedScreenId}`;
+      else if (selectedMovieId)
+        url = `/api/v1/shows/getShowsByMovieAdmin/${selectedMovieId}`;
+      else if (selectedTheaterId)
+        url = `/api/v1/shows/getShowsByTheaterAdmin/${selectedTheaterId}`;
 
-      // Filter by screen OR movie (mutually exclusive in your backend)
-      if (selectedScreenId) {
-        params.screen = selectedScreenId;
-      } else if (selectedMovieId) {
-        params.movie = selectedMovieId;
-      }
+      const res = await api.get(`${import.meta.env.VITE_BACKEND_URL}${url}`);
+      console.log(res);
 
-      // Admin-only flags
-      if (includeDeleted) params.includeDeleted = "true";
-      if (!showCancelled) params.excludeCancelled = "true"; // Hide cancelled by default for cleaner admin view
-
-      const res = await api.get("/api/v1/admin/shows", { params });
-      const data = res.data.data?.shows || res.data.data || [];
-      setShows(data);
+      setShows(res.data.data || []);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to load shows");
+      toast.error(err.response?.data?.message || "Failed to load shows", {
+        style: toastErrorStyle,
+      });
     } finally {
       setIsFetching(false);
     }
-  }, [selectedScreenId, selectedMovieId, includeDeleted, showCancelled]);
+  }, [selectedTheaterId, selectedScreenId, selectedMovieId]);
 
-  // Initial load
   useEffect(() => {
+    fetchTheaters();
     fetchMovies();
-  }, [fetchMovies]);
-
-  // Fetch screens when theater changes
+  }, [fetchTheaters, fetchMovies]);
   useEffect(() => {
-    if (selectedTheaterId) {
-      fetchScreens();
-    } else {
-      setScreens([]);
-      setScreen(null);
-    }
-  }, [selectedTheaterId, fetchScreens, setScreen]);
-
-  // Fetch shows when filters change
+    fetchScreens();
+  }, [selectedTheaterId, fetchScreens]);
   useEffect(() => {
     fetchShows();
   }, [fetchShows]);
 
-  // Sync form when store changes
-  useEffect(() => {
-    if (selectedScreenId)
-      setForm((prev) => ({ ...prev, screen: selectedScreenId }));
-  }, [selectedScreenId]);
+  const openCreateModal = () => {
+    if (!selectedTheaterId)
+      return toast.error("Please select a theater from the filters first", {
+        style: toastErrorStyle,
+      });
+    setEditing(null);
+    setForm({ movie: "", screen: selectedScreenId || "", startTime: "" });
+    setIsModalOpen(true);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const openEditModal = (show: Show) => {
+    setEditing(show);
+    setForm({
+      movie: show.movie,
+      screen: show.screen,
+      startTime: new Date(show.startTime).toISOString().slice(0, 16),
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!form.movie || !form.screen || !form.startTime) {
-      return toast.error("All fields are required");
+      return toast.error("All fields are required", { style: toastErrorStyle });
     }
-    // Validate screen belongs to selected theater
-    const selectedScreen = screens.find((s) => s._id === form.screen);
-    if (
-      selectedTheaterId &&
-      selectedScreen?.theater._id !== selectedTheaterId
-    ) {
-      return toast.error(
-        "Selected screen does not belong to the selected theater",
-      );
-    }
+
     setIsLoading(true);
     try {
+      const payload = {
+        movie: form.movie,
+        screen: form.screen,
+        startTime: form.startTime,
+      };
+
       if (editing) {
-        await api.put(`/api/v1/admin/shows/${editing._id}`, form);
-        toast.success("Show updated successfully");
+        const res = await api.put(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/shows/updateShow/${editing._id}`,
+          payload,
+        );
+        toast.success(res.data.message || "Show updated", {
+          style: toastSuccessStyle,
+        });
       } else {
-        await api.post("/api/v1/admin/shows", form);
-        toast.success("Show created successfully");
+        const res = await api.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/shows/createShow`,
+          payload,
+        );
+        toast.success(res.data.message || "Show created", {
+          style: toastSuccessStyle,
+        });
       }
+
       setIsModalOpen(false);
       setForm({ movie: "", screen: "", startTime: "" });
       setEditing(null);
       fetchShows();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Operation failed");
+      const message =
+        err.response?.data?.message || err.message || "Operation failed";
+      toast.error(message, { style: toastErrorStyle });
     } finally {
       setIsLoading(false);
     }
@@ -183,11 +244,17 @@ export default function ShowManager() {
     if (!confirm("Cancel this show? This will release all booked seats."))
       return;
     try {
-      await api.patch(`/api/v1/admin/shows/${id}/cancel`);
-      toast.success("Show cancelled successfully");
+      const res = await api.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/shows/cancelShow/${id}`,
+      );
+      toast.success(res.data.message || "Show cancelled", {
+        style: toastSuccessStyle,
+      });
       fetchShows();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Cancel failed");
+      const message =
+        err.response?.data?.message || err.message || "Cancel failed";
+      toast.error(message, { style: toastErrorStyle });
     }
   };
 
@@ -198,13 +265,20 @@ export default function ShowManager() {
       hour12: true,
     });
 
-  const activeFilterCount = [selectedScreenId, selectedMovieId].filter(
-    Boolean,
-  ).length;
+  const activeFilterCount = [
+    selectedTheaterId,
+    selectedScreenId,
+    selectedMovieId,
+  ].filter(Boolean).length;
+
+  const filteredShows = shows.filter((show) => {
+    if (!includeDeleted && show.isDeleted) return false;
+    if (!showCancelled && show.status === "cancelled") return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
-      {/* Header with Filters */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-white">Manage Shows</h2>
@@ -220,20 +294,25 @@ export default function ShowManager() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Theater Selector (for screen filtering only) */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
             <select
               value={selectedTheaterId || ""}
-              onChange={(e) => setSelectedTheater(e.target.value || null)}
+              onChange={(e) => {
+                setSelectedTheater(e.target.value || null);
+                setScreen(null);
+              }}
               className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-amber-500 focus:outline-none min-w-[150px]"
             >
               <option value="">All Theaters</option>
-              {/* You would fetch theaters here if needed for the dropdown */}
+              {theaters.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Screen Filter */}
           <select
             value={selectedScreenId || ""}
             onChange={(e) => setScreen(e.target.value || null)}
@@ -248,7 +327,6 @@ export default function ShowManager() {
             ))}
           </select>
 
-          {/* Movie Filter */}
           <select
             value={selectedMovieId || ""}
             onChange={(e) => setMovie(e.target.value || null)}
@@ -262,17 +340,9 @@ export default function ShowManager() {
             ))}
           </select>
 
-          {/* Toggle: Hide/Show Cancelled Shows */}
           <button
             onClick={toggleCancelled}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${
-              showCancelled
-                ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
-                : "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
-            }`}
-            title={
-              showCancelled ? "Show cancelled shows" : "Hide cancelled shows"
-            }
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${showCancelled ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"}`}
           >
             {showCancelled ? (
               <Eye className="w-4 h-4" />
@@ -282,19 +352,9 @@ export default function ShowManager() {
             {showCancelled ? "Show Cancelled" : "Hide Cancelled"}
           </button>
 
-          {/* Admin-only: Toggle Soft-Deleted Shows */}
           <button
             onClick={toggleIncludeDeleted}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${
-              includeDeleted
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
-                : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
-            }`}
-            title={
-              includeDeleted
-                ? "Hide soft-deleted shows"
-                : "Show soft-deleted shows"
-            }
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${includeDeleted ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"}`}
           >
             {includeDeleted ? (
               <Eye className="w-4 h-4" />
@@ -304,16 +364,8 @@ export default function ShowManager() {
             {includeDeleted ? "Show Deleted" : "Hide Deleted"}
           </button>
 
-          {/* Add Show Button */}
           <button
-            onClick={() => {
-              if (!selectedTheaterId) {
-                return toast.error("Please select a theater first");
-              }
-              setEditing(null);
-              setForm({ movie: "", screen: "", startTime: "" });
-              setIsModalOpen(true);
-            }}
+            onClick={openCreateModal}
             className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-medium rounded-lg transition-colors"
           >
             + Add Show
@@ -321,7 +373,6 @@ export default function ShowManager() {
         </div>
       </div>
 
-      {/* Shows Table */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-800/50 text-slate-300">
@@ -344,7 +395,7 @@ export default function ShowManager() {
                   </div>
                 </td>
               </tr>
-            ) : shows.length === 0 ? (
+            ) : filteredShows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
@@ -353,42 +404,32 @@ export default function ShowManager() {
                   <p className="text-lg font-medium mb-1">No shows found</p>
                   <p className="text-sm">
                     {activeFilterCount > 0
-                      ? "Try adjusting your filters or clear them to see all shows."
-                      : "Add your first show to get started."}
+                      ? "Try adjusting your filters."
+                      : "Select a theater, screen, or movie filter to view shows."}
                   </p>
                 </td>
               </tr>
             ) : (
-              shows.map((show) => (
+              filteredShows.map((show) => (
                 <tr
                   key={show._id}
-                  className={`hover:bg-slate-800/30 transition-colors ${
-                    show.isDeleted ? "bg-slate-900/70" : ""
-                  } ${show.status === "cancelled" ? "bg-red-900/10" : ""}`}
+                  className={`hover:bg-slate-800/30 transition-colors ${show.isDeleted ? "bg-slate-900/70" : ""} ${show.status === "cancelled" ? "bg-red-900/10" : ""}`}
                 >
                   <td
-                    className={`px-4 py-3 font-medium ${
-                      show.isDeleted
-                        ? "text-slate-500 line-through"
-                        : "text-white"
-                    }`}
+                    className={`px-4 py-3 font-medium ${show.isDeleted ? "text-slate-500 line-through" : "text-white"}`}
                   >
-                    {show.movie.title}
+                    {getMovieTitle(show.movie)}
                   </td>
                   <td
-                    className={`px-4 py-3 ${
-                      show.isDeleted ? "text-slate-600" : "text-slate-400"
-                    }`}
+                    className={`px-4 py-3 ${show.isDeleted ? "text-slate-600" : "text-slate-400"}`}
                   >
-                    {show.screen.name}
+                    {getScreenName(show.screen)}
                   </td>
                   <td className="px-4 py-3 text-slate-400">
-                    {show.screen.theater.name}
+                    {getTheaterName(show.theater)}
                   </td>
                   <td
-                    className={`px-4 py-3 ${
-                      show.isDeleted ? "text-slate-600" : "text-slate-300"
-                    }`}
+                    className={`px-4 py-3 ${show.isDeleted ? "text-slate-600" : "text-slate-300"}`}
                   >
                     {formatDate(show.startTime)}
                   </td>
@@ -415,23 +456,16 @@ export default function ShowManager() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right space-x-2">
-                    {/* Soft-deleted or completed shows: read-only */}
-                    {show.isDeleted || show.status === "completed" ? (
+                    {show.isDeleted ||
+                    show.status === "completed" ||
+                    show.status === "cancelled" ? (
                       <span className="text-xs text-slate-500 italic">
                         Read-only
                       </span>
                     ) : (
                       <>
                         <button
-                          onClick={() => {
-                            setEditing(show);
-                            setForm({
-                              movie: show.movie._id,
-                              screen: show.screen._id,
-                              startTime: show.startTime.slice(0, 16),
-                            });
-                            setIsModalOpen(true);
-                          }}
+                          onClick={() => openEditModal(show)}
                           className="text-slate-400 hover:text-amber-400 transition-colors p-1"
                           title="Edit show"
                         >
@@ -454,7 +488,6 @@ export default function ShowManager() {
         </table>
       </div>
 
-      {/* Modal for Add/Edit */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -476,7 +509,6 @@ export default function ShowManager() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Movie Select */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Movie *
@@ -496,7 +528,6 @@ export default function ShowManager() {
                 </select>
               </div>
 
-              {/* Screen Select - filtered by theater */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Screen *
@@ -515,21 +546,14 @@ export default function ShowManager() {
                         ? "No screens available"
                         : "Select Screen"}
                   </option>
-                  {screens
-                    .filter(
-                      (s) =>
-                        !selectedTheaterId ||
-                        s.theater._id === selectedTheaterId,
-                    )
-                    .map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.name}
-                      </option>
-                    ))}
+                  {screens.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Start Time */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
                   Start Time *
@@ -550,7 +574,6 @@ export default function ShowManager() {
                 </p>
               </div>
 
-              {/* Form Actions */}
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
                 <button
                   type="button"

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../utils/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -36,17 +37,18 @@ const FILTER_OPTIONS = {
     "Comedy",
   ],
   language: ["English", "Hindi", "Tamil", "Telugu", "Malayalam"],
-  rating: ["7+", "8+", "9+"],
+  rating: ["2+", "3+", "4+"],
   format: ["IMAX", "2D", "3D", "4DX", "Dolby"],
 };
 
+const ITEMS_PER_PAGE = 10;
+const INITIAL_DISPLAY = 5;
+
 export default function NewReleasesSection() {
-  const [movies, setMovies] = useState<Movie[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     genre: "",
     language: "",
@@ -54,94 +56,67 @@ export default function NewReleasesSection() {
     format: "",
   });
 
-  const ITEMS_PER_PAGE = 10;
-  const INITIAL_DISPLAY = 5;
+  // Fetch ALL movies (backend doesn't support filters)
+  const fetchMovies = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all movies at once
+      const res = await api.get<MoviesResponse>(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesUser`,
+        { params: { page: 1, limit: 100 } }, // Get all movies
+      );
 
-  // Fetch movies from backend
-  const fetchMovies = useCallback(
-    async (
-      page: number,
-      limit: number,
-      filterParams: Record<string, string> = {},
-    ) => {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          limit: String(limit),
-          ...Object.entries(filterParams)
-            .filter(([_, v]) => v)
-            .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
-        });
-
-        const res = await api.get<MoviesResponse>(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesUser?${params}`,
-        );
-
-        if (res.data.success) {
-          if (page === 1) {
-            setMovies(res.data.data.movies);
-            setAllMovies(res.data.data.movies);
-          } else {
-            setMovies((prev) => [...prev, ...res.data.data.movies]);
-          }
-          setTotalPages(res.data.data.totalPages);
-        }
-      } catch {
-        toast.error("Failed to load movies");
-      } finally {
-        setIsLoading(false);
+      if (res.data.success) {
+        setAllMovies(res.data.data.movies);
       }
-    },
-    [],
-  );
+    } catch {
+      toast.error("Failed to load movies");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Initial fetch
   useEffect(() => {
-    fetchMovies(1, showAll ? ITEMS_PER_PAGE : INITIAL_DISPLAY);
-  }, [fetchMovies, showAll]);
+    fetchMovies();
+  }, [fetchMovies]);
 
-  // Refetch when filters change
-  useEffect(() => {
-    const activeFilters = Object.entries(filters).reduce(
-      (acc, [k, v]) => (v ? { ...acc, [k]: v } : acc),
-      {},
-    );
-    fetchMovies(1, showAll ? ITEMS_PER_PAGE : INITIAL_DISPLAY, activeFilters);
-    setCurrentPage(1);
-  }, [filters, fetchMovies, showAll]);
+  // Client-side filtering
+  const filteredMovies = useMemo(() => {
+    return allMovies.filter((movie) => {
+      return (
+        (!filters.genre || movie.genre.includes(filters.genre)) &&
+        (!filters.language || movie.language.includes(filters.language)) &&
+        (!filters.rating ||
+          movie.rating >= Number(filters.rating.replace("+", ""))) &&
+        (!filters.format || movie.format.includes(filters.format))
+      );
+    });
+  }, [allMovies, filters]);
+
+  // Pagination on filtered results
+  const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
+  const displayedMovies = useMemo(() => {
+    if (!showAll) {
+      return filteredMovies.slice(0, INITIAL_DISPLAY);
+    }
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredMovies.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredMovies, showAll, currentPage]);
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to page 1 when filter changes
   };
 
   const resetFilters = () => {
     setFilters({ genre: "", language: "", rating: "", format: "" });
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-    const activeFilters = Object.entries(filters).reduce(
-      (acc, [k, v]) => (v ? { ...acc, [k]: v } : acc),
-      {},
-    );
-    fetchMovies(page, ITEMS_PER_PAGE, activeFilters);
   };
-
-  // Client-side filtering for instant feedback (optional, remove if backend handles all filtering)
-  const filteredMovies = useMemo(() => {
-    if (!showAll) return movies.slice(0, INITIAL_DISPLAY);
-    return movies.filter((m) => {
-      return (
-        (!filters.genre || m.genre.includes(filters.genre)) &&
-        (!filters.language || m.language.includes(filters.language)) &&
-        (!filters.rating ||
-          m.rating >= Number(filters.rating.replace("+", ""))) &&
-        (!filters.format || m.format.includes(filters.format))
-      );
-    });
-  }, [movies, filters, showAll]);
-  console.log("Filtered", filteredMovies);
 
   const getStatusBadge = (status: Movie["status"]) => {
     switch (status) {
@@ -154,14 +129,31 @@ export default function NewReleasesSection() {
     }
   };
 
+  // Simple page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   return (
     <section className="py-6 md:py-10 bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header & Filters */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white">
-            New Releases
-          </h2>
+          <div>
+            <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white">
+              New Releases
+            </h2>
+            {showAll && (
+              <p className="text-sm text-slate-400 mt-1">
+                Showing {displayedMovies.length} of {filteredMovies.length}{" "}
+                movies
+              </p>
+            )}
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2 sm:pb-0 [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden">
@@ -213,20 +205,22 @@ export default function NewReleasesSection() {
         {/* Loading State */}
         {isLoading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-[2/3] rounded-xl bg-slate-800 mb-2" />
-                <div className="h-4 bg-slate-800 rounded w-3/4 mb-1" />
-                <div className="h-3 bg-slate-800 rounded w-1/2" />
-              </div>
-            ))}
+            {[...Array(showAll ? ITEMS_PER_PAGE : INITIAL_DISPLAY)].map(
+              (_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] rounded-xl bg-slate-800 mb-2" />
+                  <div className="h-4 bg-slate-800 rounded w-3/4 mb-1" />
+                  <div className="h-3 bg-slate-800 rounded w-1/2" />
+                </div>
+              ),
+            )}
           </div>
         )}
 
         {/* Movie Grid - 5 per row */}
-        {!isLoading && filteredMovies.length > 0 ? (
+        {!isLoading && displayedMovies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-            {filteredMovies.map((movie) => (
+            {displayedMovies.map((movie) => (
               <Link
                 key={movie._id}
                 to={`/movie/${movie._id}`}
@@ -234,18 +228,19 @@ export default function NewReleasesSection() {
               >
                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-amber-500/50 transition-colors mb-2">
                   <img
-                    src={movie.posterImage?.url}
+                    src={
+                      movie.posterImage?.url ||
+                      "https://via.placeholder.com/300x450"
+                    }
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
-                  {/* Status Badge */}
                   <span
                     className={`absolute top-2 left-2 px-2 py-0.5 text-[10px] font-medium rounded border ${getStatusBadge(movie.status)}`}
                   >
                     {movie.status.replace("_", " ")}
                   </span>
-                  {/* Rating Badge */}
                   <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-700">
                     <svg
                       className="w-3 h-3 text-amber-400"
@@ -284,39 +279,35 @@ export default function NewReleasesSection() {
         {showAll && !isLoading && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-8">
             <button
-              disabled={currentPage === 1}
               onClick={() => handlePageChange(currentPage - 1)}
-              className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
-              Prev
+              <ChevronLeft className="w-4 h-4" /> Prev
             </button>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum = i + 1;
-              if (totalPages > 5 && currentPage > 3) {
-                pageNum = currentPage - 3 + i;
-              }
-              return (
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page) => (
                 <button
-                  key={pageNum}
-                  onClick={() => handlePageChange(pageNum)}
+                  key={page}
+                  onClick={() => handlePageChange(page)}
                   className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                    currentPage === pageNum
+                    currentPage === page
                       ? "bg-amber-500 text-slate-900"
-                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      : "text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  {pageNum}
+                  {page}
                 </button>
-              );
-            })}
+              ))}
+            </div>
 
             <button
-              disabled={currentPage === totalPages}
               onClick={() => handlePageChange(currentPage + 1)}
-              className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
-              Next
+              Next <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         )}

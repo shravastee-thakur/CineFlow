@@ -1,60 +1,28 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
+import api from "../utils/axiosInstance";
+import toast from "react-hot-toast";
 
 interface Movie {
-  id: string;
+  _id: string;
   title: string;
-  genre: string;
-  language: string;
+  genre: string[];
+  language: string[];
   rating: number;
-  format: string;
-  thumbnailUrl: string;
+  format: string[];
+  posterImage?: { url: string };
+  status: "coming_soon" | "now_showing" | "ended";
 }
 
-// Mock data for demonstration (replace with API fetch)
-const AllMovies: Movie[] = Array.from({ length: 25 }, (_, i) => ({
-  id: `${i + 1}`,
-  title: [
-    "Dune Prophecy",
-    "Wicked",
-    "Gladiator II",
-    "Moana 2",
-    "Red One",
-    "Venom 3",
-    "The Wild Robot",
-    "Smile 2",
-    "Terrifier 3",
-    "Anora",
-    "Conclave",
-    "Heretic",
-    "The Substance",
-    "Nosferatu",
-    "A Complete Unknown",
-    "Sonic 3",
-    "Mufasa",
-    "Kraven",
-    "Bridget Jones 4",
-    "Avatar 3",
-    "F1",
-    "Blade",
-    "Fantastic Four",
-    "Superman Legacy",
-    "Mission Impossible 8",
-  ][i % 25],
-  genre: [
-    "Sci-Fi",
-    "Musical",
-    "Drama",
-    "Animation",
-    "Action",
-    "Horror",
-    "Thriller",
-  ][i % 7],
-  language: ["English", "Hindi", "Tamil", "Telugu", "Malayalam"][i % 5],
-  rating: Math.round((7 + Math.random() * 2.5) * 10) / 10,
-  format: ["IMAX", "2D", "3D", "4DX", "Dolby"][i % 5],
-  thumbnailUrl: `/images/movie-${i + 1}.jpg`,
-}));
+interface MoviesResponse {
+  success: boolean;
+  data: {
+    movies: Movie[];
+    currentPage: number;
+    totalPages: number;
+    totalMovies: number;
+  };
+}
 
 const FILTER_OPTIONS = {
   genre: [
@@ -65,6 +33,7 @@ const FILTER_OPTIONS = {
     "Animation",
     "Horror",
     "Musical",
+    "Comedy",
   ],
   language: ["English", "Hindi", "Tamil", "Telugu", "Malayalam"],
   rating: ["7+", "8+", "9+"],
@@ -72,8 +41,12 @@ const FILTER_OPTIONS = {
 };
 
 export default function NewReleasesSection() {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     genre: "",
     language: "",
@@ -82,43 +55,104 @@ export default function NewReleasesSection() {
   });
 
   const ITEMS_PER_PAGE = 10;
-  const INITIAL_DISPLAY = 6;
+  const INITIAL_DISPLAY = 5;
+
+  // Fetch movies from backend
+  const fetchMovies = useCallback(
+    async (
+      page: number,
+      limit: number,
+      filterParams: Record<string, string> = {},
+    ) => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+          ...Object.entries(filterParams)
+            .filter(([_, v]) => v)
+            .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
+        });
+
+        const res = await api.get<MoviesResponse>(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getAllMoviesUser?${params}`,
+        );
+
+        if (res.data.success) {
+          if (page === 1) {
+            setMovies(res.data.data.movies);
+            setAllMovies(res.data.data.movies);
+          } else {
+            setMovies((prev) => [...prev, ...res.data.data.movies]);
+          }
+          setTotalPages(res.data.data.totalPages);
+        }
+      } catch {
+        toast.error("Failed to load movies");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  // Initial fetch
+  useEffect(() => {
+    fetchMovies(1, showAll ? ITEMS_PER_PAGE : INITIAL_DISPLAY);
+  }, [fetchMovies, showAll]);
+
+  // Refetch when filters change
+  useEffect(() => {
+    const activeFilters = Object.entries(filters).reduce(
+      (acc, [k, v]) => (v ? { ...acc, [k]: v } : acc),
+      {},
+    );
+    fetchMovies(1, showAll ? ITEMS_PER_PAGE : INITIAL_DISPLAY, activeFilters);
+    setCurrentPage(1);
+  }, [filters, fetchMovies, showAll]);
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setShowAll(false);
-    setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setFilters({ genre: "", language: "", rating: "", format: "" });
-    setShowAll(false);
-    setCurrentPage(1);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const activeFilters = Object.entries(filters).reduce(
+      (acc, [k, v]) => (v ? { ...acc, [k]: v } : acc),
+      {},
+    );
+    fetchMovies(page, ITEMS_PER_PAGE, activeFilters);
+  };
+
+  // Client-side filtering for instant feedback (optional, remove if backend handles all filtering)
   const filteredMovies = useMemo(() => {
-    return AllMovies.filter((m) => {
+    if (!showAll) return movies.slice(0, INITIAL_DISPLAY);
+    return movies.filter((m) => {
       return (
-        (!filters.genre || m.genre === filters.genre) &&
-        (!filters.language || m.language === filters.language) &&
+        (!filters.genre || m.genre.includes(filters.genre)) &&
+        (!filters.language || m.language.includes(filters.language)) &&
         (!filters.rating ||
           m.rating >= Number(filters.rating.replace("+", ""))) &&
-        (!filters.format || m.format === filters.format)
+        (!filters.format || m.format.includes(filters.format))
       );
     });
-  }, [filters]);
+  }, [movies, filters, showAll]);
+  console.log("Filtered", filteredMovies);
 
-  const displayedMovies = showAll
-    ? filteredMovies.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-      )
-    : filteredMovies.slice(0, INITIAL_DISPLAY);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredMovies.length / ITEMS_PER_PAGE),
-  );
+  const getStatusBadge = (status: Movie["status"]) => {
+    switch (status) {
+      case "now_showing":
+        return "bg-green-500/10 text-green-400 border-green-500/30";
+      case "coming_soon":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      default:
+        return "bg-slate-500/10 text-slate-400 border-slate-500/30";
+    }
+  };
 
   return (
     <section className="py-6 md:py-10 bg-slate-950">
@@ -176,33 +210,65 @@ export default function NewReleasesSection() {
           </div>
         </div>
 
-        {/* Movie Grid */}
-        {displayedMovies.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-            {displayedMovies.map((movie) => (
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[2/3] rounded-xl bg-slate-800 mb-2" />
+                <div className="h-4 bg-slate-800 rounded w-3/4 mb-1" />
+                <div className="h-3 bg-slate-800 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Movie Grid - 5 per row */}
+        {!isLoading && filteredMovies.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            {filteredMovies.map((movie) => (
               <Link
-                key={movie.id}
-                to={`/movie/${movie.id}`}
+                key={movie._id}
+                to={`/movie/${movie._id}`}
                 className="group block focus:outline-none"
               >
-                <div className="aspect-[2/3] rounded-xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-amber-500/50 transition-colors mb-2">
+                <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-slate-800 border border-slate-700 group-hover:border-amber-500/50 transition-colors mb-2">
                   <img
-                    src={movie.thumbnailUrl}
+                    src={movie.posterImage?.url}
                     alt={movie.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
+                  {/* Status Badge */}
+                  <span
+                    className={`absolute top-2 left-2 px-2 py-0.5 text-[10px] font-medium rounded border ${getStatusBadge(movie.status)}`}
+                  >
+                    {movie.status.replace("_", " ")}
+                  </span>
+                  {/* Rating Badge */}
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-700">
+                    <svg
+                      className="w-3 h-3 text-amber-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="text-xs font-medium text-white">
+                      {movie.rating}
+                    </span>
+                  </div>
                 </div>
                 <h3 className="text-sm font-medium text-white truncate group-hover:text-amber-400 transition-colors">
                   {movie.title}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {movie.genre} • {movie.language}
+                  {movie.genre[0]} • {movie.language[0]}
                 </p>
               </Link>
             ))}
           </div>
-        ) : (
+        ) : !isLoading ? (
           <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800">
             <p className="text-slate-400">No movies match your filters</p>
             <button
@@ -212,14 +278,14 @@ export default function NewReleasesSection() {
               Clear filters
             </button>
           </div>
-        )}
+        ) : null}
 
-        {/* Pagination */}
-        {showAll && filteredMovies.length > ITEMS_PER_PAGE && (
+        {/* Pagination - Only show when viewing all */}
+        {showAll && !isLoading && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-8">
             <button
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(currentPage - 1)}
               className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               Prev
@@ -233,7 +299,7 @@ export default function NewReleasesSection() {
               return (
                 <button
                   key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
+                  onClick={() => handlePageChange(pageNum)}
                   className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                     currentPage === pageNum
                       ? "bg-amber-500 text-slate-900"
@@ -247,7 +313,7 @@ export default function NewReleasesSection() {
 
             <button
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => handlePageChange(currentPage + 1)}
               className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               Next

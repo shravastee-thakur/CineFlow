@@ -11,6 +11,7 @@ import ResetPasswordPage from "./pages/User/ResetPassword";
 import Home from "./pages/Home";
 import UserProfilePage from "./pages/User/UserProfilePage";
 import AdminPage from "./pages/Admin";
+import MovieDetailsPage from "./pages/MovieDetails";
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/movie/:id" element={<MovieDetailsPage />} />
         </Route>
       </Routes>
     </div>

@@ -76,8 +76,6 @@ export default function ShowManager() {
   const getTheaterName = (id: string) =>
     theaters.find((t) => t._id === id)?.name || "Unknown Theater";
 
-
-
   // for drop down
   const fetchTheaters = useCallback(async () => {
     try {
@@ -344,11 +342,6 @@ export default function ShowManager() {
             onClick={toggleCancelled}
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${showCancelled ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700" : "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"}`}
           >
-            {showCancelled ? (
-              <Eye className="w-4 h-4" />
-            ) : (
-              <EyeOff className="w-4 h-4" />
-            )}
             {showCancelled ? "Show Cancelled" : "Hide Cancelled"}
           </button>
 
@@ -356,11 +349,6 @@ export default function ShowManager() {
             onClick={toggleIncludeDeleted}
             className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors border ${includeDeleted ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"}`}
           >
-            {includeDeleted ? (
-              <Eye className="w-4 h-4" />
-            ) : (
-              <EyeOff className="w-4 h-4" />
-            )}
             {includeDeleted ? "Show Deleted" : "Hide Deleted"}
           </button>
 

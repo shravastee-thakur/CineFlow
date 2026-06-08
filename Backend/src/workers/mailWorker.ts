@@ -5,7 +5,7 @@ import sendMail from "../config/sendMail.js";
 import logger from "../utils/logger.js";
 
 const mailWorker = new Worker<EmailJobData, void, string>(
-  "mailQueue", // Must match the name in your Queue setup
+  "mailQueue",
   async (job) => {
     const { to, subject, htmlContent, textContent } = job.data;
     if (!to || !subject) {
@@ -13,14 +13,27 @@ const mailWorker = new Worker<EmailJobData, void, string>(
         `Invalid job data: missing recipient or subject for job ${job.id}`,
       );
     }
+
     await sendMail(to, subject, htmlContent);
   },
   {
     connection: redis,
     concurrency: 5,
     limiter: {
-      max: 10, // Max 10 emails
-      duration: 1000, // per second
+      max: 10,
+      duration: 1000,
+    },
+    settings: {
+      // Injecting the Full Jitter backoff strategy
+      backoffStrategy: (attemptsMade: number, type?: string) => {
+        if (type === "full-jitter") {
+          const cap = 60000;
+          const base = 2000;
+          const temp = Math.min(cap, base * Math.pow(2, attemptsMade));
+          return Math.floor(Math.random() * temp);
+        }
+        return 1000;
+      },
     },
   },
 );
@@ -30,10 +43,22 @@ mailWorker.on("completed", (job) => {
 });
 
 mailWorker.on("failed", (job, err) => {
-  if (job)
-    logger.error(
-      `Email job ${job.id} failed for ${job.data.to}: ${err.message}`,
-    );
+  if (job) {
+    const maxAttempts = job.opts.attempts || 1;
+    const isPermanentFailure = job.attemptsMade >= maxAttempts;
+
+    if (isPermanentFailure) {
+      // This is your Dead Letter Queue logic
+      logger.error(
+        `[DLQ] Email job ${job.id} permanently failed for ${job.data.to} after ${job.attemptsMade} attempts. Error: ${err.message}`,
+      );
+      // TODO: Trigger a Slack/PagerDuty alert here or save to a failed_emails database table
+    } else {
+      logger.warn(
+        `Email job ${job.id} failed attempt ${job.attemptsMade}/${maxAttempts} for ${job.data.to}. Retrying... Error: ${err.message}`,
+      );
+    }
+  }
 });
 
 mailWorker.on("error", (err) => {
@@ -41,3 +66,47 @@ mailWorker.on("error", (err) => {
 });
 
 export default mailWorker;
+
+// import { Worker } from "bullmq";
+// import { redis } from "../config/redis.js";
+// import { EmailJobData } from "../config/bullmq.js";
+// import sendMail from "../config/sendMail.js";
+// import logger from "../utils/logger.js";
+
+// const mailWorker = new Worker<EmailJobData, void, string>(
+//   "mailQueue", // Must match the name in your Queue setup
+//   async (job) => {
+//     const { to, subject, htmlContent, textContent } = job.data;
+//     if (!to || !subject) {
+//       throw new Error(
+//         `Invalid job data: missing recipient or subject for job ${job.id}`,
+//       );
+//     }
+//     await sendMail(to, subject, htmlContent);
+//   },
+//   {
+//     connection: redis,
+//     concurrency: 5,
+//     limiter: {
+//       max: 10, // Max 10 emails
+//       duration: 1000, // per second
+//     },
+//   },
+// );
+
+// mailWorker.on("completed", (job) => {
+//   logger.info(`Email job ${job.id} completed successfully for ${job.data.to}`);
+// });
+
+// mailWorker.on("failed", (job, err) => {
+//   if (job)
+//     logger.error(
+//       `Email job ${job.id} failed for ${job.data.to}: ${err.message}`,
+//     );
+// });
+
+// mailWorker.on("error", (err) => {
+//   logger.error(`MailWorker critical error: ${err.message}`);
+// });
+
+// export default mailWorker;

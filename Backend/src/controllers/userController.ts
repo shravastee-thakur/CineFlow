@@ -53,6 +53,7 @@ export const loginStepOne = async (
     );
 
     const otp = await userService.processLoginOtp(user.email);
+    console.log(otp);
 
     await queueService.sendLoginOtpEmail(user.email, otp);
 
@@ -62,6 +63,7 @@ export const loginStepOne = async (
       success: true,
       message: "Otp sent successfully to your registered email",
       user: user._id,
+      otp,
     });
   } catch (error) {
     logger.warn(`Failed login attempt for: ${req.body?.email}`);
@@ -183,5 +185,3 @@ export const logout = async (
     next(error);
   }
 };
-
-

@@ -90,22 +90,6 @@ export const getTheaterById = async (
   }
 };
 
-// export const getTheaterByState = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const state = req.params.state as string;
-
-//     const theaters = await theaterService.findTheaterByState(state);
-//     return res.status(200).json({ success: true, data: theaters });
-//   } catch (error) {
-//     logger.error(`Get Theaters By State error: ${(error as Error).message}`);
-//     next(error);
-//   }
-// };
-
 export const getTheaterByCity = async (
   req: Request,
   res: Response,
@@ -191,6 +175,24 @@ export const restoreTheater = async (
     });
   } catch (error) {
     logger.error(`Restore Theater error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getAllCities = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const cities = await theaterService.findAllCities();
+
+    return res.status(200).json({
+      success: true,
+      data: cities,
+    });
+  } catch (error) {
+    logger.error(`Failed to fetch cities: ${(error as Error).message}`);
     next(error);
   }
 };

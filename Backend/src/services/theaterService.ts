@@ -121,7 +121,6 @@ export const findTheaterById = async (
   return mapToTheaterDto(theater);
 };
 
-
 export const findTheaterByCity = async (
   city: string,
 ): Promise<TheaterDto[]> => {
@@ -152,9 +151,10 @@ export const deleteTheater = async (
   theater.isDeleted = true;
   await theater.save();
 
-   const { modifiedCount } = await screenRepo.softDeleteScreensByTheater(theaterId);
+  const { modifiedCount } =
+    await screenRepo.softDeleteScreensByTheater(theaterId);
 
-  return { success: true , screensAffected: modifiedCount};
+  return { success: true, screensAffected: modifiedCount };
 };
 
 export const restoreTheater = async (
@@ -163,4 +163,11 @@ export const restoreTheater = async (
   const theater = await theaterRepo.restoreTheater(theaterId);
   if (!theater) throw new ApiError(404, "Theater not found");
   return mapToTheaterDto(theater);
+};
+
+export const findAllCities = async (): Promise<string[]> => {
+  const cities = await theaterRepo.findAllCities();
+
+  // Convert [{ name: "Mumbai" }, { name: "Delhi" }] into ["Mumbai", "Delhi"]
+  return cities.map((c) => c.name);
 };

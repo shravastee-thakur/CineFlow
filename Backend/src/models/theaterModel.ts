@@ -4,7 +4,6 @@ export interface ITheater {
   name: string;
   location: string;
   city: string;
-  // state: string;
   isDeleted: Boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -28,12 +27,6 @@ const theaterSchema = new Schema<ITheater>(
       trim: true,
       index: true,
     },
-    // state: {
-    //   type: String,
-    //   required: true,
-    //   trim: true,
-    //   index: true,
-    // },
     isDeleted: {
       type: Boolean,
       default: false,

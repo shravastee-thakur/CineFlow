@@ -16,7 +16,7 @@ import {
 export interface ShowDto {
   _id: string;
   movie: string;
-  screen: string;
+  screen: string | { _id: string; layout?: any[] };
   theater: string;
   startTime: Date;
   endTime: Date;
@@ -42,7 +42,13 @@ function mapToShowDto(
   const baseScreen: ShowDto = {
     _id: obj._id.toString(),
     movie: obj.movie.toString(),
-    screen: obj.screen.toString(),
+    screen:
+      obj.screen && (obj.screen as any)._id
+        ? {
+            _id: (obj.screen as any)._id.toString(),
+            layout: (obj.screen as any).layout,
+          }
+        : obj.screen.toString(),
     theater: obj.theater?.toString(),
     startTime: obj.startTime,
     endTime: obj.endTime,

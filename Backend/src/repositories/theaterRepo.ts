@@ -94,3 +94,12 @@ export const restoreTheater = async (
     { new: true, runValidators: true },
   ).exec();
 };
+
+export const findAllCities = async (): Promise<{ name: string }[]> => {
+  return await Theater.aggregate([
+    { $match: { city: { $exists: true, $ne: "" } } },
+    { $group: { _id: "$city" } },
+    { $sort: { _id: 1 } }, // Alphabetical order
+    { $project: { _id: 0, name: "$_id" } },
+  ]);
+};

@@ -19,7 +19,9 @@ export const createShow = async (
 export const findShowById = async (
   showId: string,
 ): Promise<ShowDocument | null> => {
-  return Show.findById(showId).exec();
+  return Show.findById(showId)
+    .populate({ path: "screen", select: "layout" })
+    .exec();
 };
 
 export const findShowsByTheater = async (

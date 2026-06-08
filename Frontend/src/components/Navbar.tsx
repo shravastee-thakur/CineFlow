@@ -4,31 +4,51 @@ import { useAuthStore } from "../store/authStore";
 import api from "../utils/axiosInstance";
 import toast from "react-hot-toast";
 
-interface Location {
-  id: string;
-  name: string;
-}
-
-const LOCATIONS: Location[] = [
-  { id: "ny", name: "New York" },
-  { id: "la", name: "Los Angeles" },
-  { id: "chi", name: "Chicago" },
-  { id: "hou", name: "Houston" },
-];
-
 export default function Navbar() {
-  const { userId, role, isVerified, clearAuth } = useAuthStore();
-
+  const {
+    userId,
+    role,
+    isVerified,
+    activeLocation,
+    setActiveLocation,
+    clearAuth,
+  } = useAuthStore();
   const navigate = useNavigate();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAuthMenuOpen, setIsAuthMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeLocation, setActiveLocation] = useState<Location>(LOCATIONS[0]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [cities, setCities] = useState<string[]>([]);
+  const [isCitiesLoading, setIsCitiesLoading] = useState(true);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const authMenuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch cities from backend on mount
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const res = await api.get<{ success: boolean; data: string[] }>(
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/cities`,
+        );
+        if (res.data.success && res.data.data.length > 0) {
+          setCities(res.data.data);
+          // Set default location if not already set
+          if (!activeLocation) {
+            setActiveLocation(res.data.data[0]);
+          }
+        }
+      } catch {
+        // Fallback cities if API fails
+        setCities(["Mumbai", "Delhi", "Bangalore", "Hyderabad"]);
+        if (!activeLocation) setActiveLocation("Mumbai");
+      } finally {
+        setIsCitiesLoading(false);
+      }
+    };
+    fetchCities();
+  }, [activeLocation, setActiveLocation]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -57,8 +77,8 @@ export default function Navbar() {
     return () => window.removeEventListener("popstate", handleRouteChange);
   }, []);
 
-  const handleLocationSelect = (loc: Location) => {
-    setActiveLocation(loc);
+  const handleLocationSelect = (city: string) => {
+    setActiveLocation(city); // Update global store
     setIsDropdownOpen(false);
   };
 
@@ -74,11 +94,8 @@ export default function Navbar() {
       }
     } catch (err: any) {
       let message = "Something went wrong. Please try again.";
-      if (err.response?.data?.message) {
-        message = err.response.data.message;
-      } else if (err instanceof Error) {
-        message = err.message;
-      }
+      if (err.response?.data?.message) message = err.response.data.message;
+      else if (err instanceof Error) message = err.message;
       toast.error(message, {
         style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
       });
@@ -143,7 +160,8 @@ export default function Navbar() {
               aria-haspopup="listbox"
               aria-expanded={isDropdownOpen}
               onClick={() => setIsDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-600 hover:border-amber-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500"
+              disabled={isCitiesLoading}
+              className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-600 hover:border-amber-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
             >
               <svg
                 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0"
@@ -165,7 +183,9 @@ export default function Navbar() {
                 />
               </svg>
               <span className="hidden xs:inline text-xs sm:text-sm font-medium text-slate-200">
-                {activeLocation.name}
+                {isCitiesLoading
+                  ? "Loading..."
+                  : activeLocation || "Select City"}
               </span>
               <svg
                 className={`h-3 w-3 sm:h-4 sm:w-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ${isDropdownOpen ? "rotate-180" : ""}`}
@@ -182,21 +202,21 @@ export default function Navbar() {
               </svg>
             </button>
 
-            {isDropdownOpen && (
+            {isDropdownOpen && !isCitiesLoading && (
               <ul
                 role="listbox"
-                className="absolute right-0 mt-1.5 w-40 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden z-50"
+                className="absolute right-0 mt-1.5 w-40 bg-slate-900 rounded-lg shadow-xl border border-slate-700 overflow-hidden z-50 max-h-60 overflow-y-auto"
               >
-                {LOCATIONS.map((loc) => (
+                {cities.map((city) => (
                   <li
-                    key={loc.id}
+                    key={city}
                     role="option"
-                    aria-selected={activeLocation.id === loc.id}
+                    aria-selected={activeLocation === city}
                     className="px-3 py-2 hover:bg-slate-800 cursor-pointer transition-colors text-slate-300 hover:text-white text-sm flex items-center justify-between"
-                    onClick={() => handleLocationSelect(loc)}
+                    onClick={() => handleLocationSelect(city)}
                   >
-                    {loc.name}
-                    {activeLocation.id === loc.id && (
+                    {city}
+                    {activeLocation === city && (
                       <svg
                         className="h-3.5 w-3.5 text-amber-400"
                         fill="none"
@@ -254,8 +274,6 @@ export default function Navbar() {
                     >
                       Profile
                     </Link>
-
-                    {/* Admin Link - Only for admin users */}
                     {isAdmin && (
                       <Link
                         to="/admin"
@@ -345,16 +363,20 @@ export default function Navbar() {
             <div className="flex items-center justify-between py-2 border-t border-slate-700">
               <span className="text-sm text-slate-400">Location</span>
               <select
-                value={activeLocation.id}
+                value={activeLocation || ""}
                 onChange={(e) => {
-                  const loc = LOCATIONS.find((l) => l.id === e.target.value);
-                  if (loc) handleLocationSelect(loc);
+                  setActiveLocation(e.target.value);
+                  setIsMobileMenuOpen(false);
                 }}
-                className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none"
+                disabled={isCitiesLoading}
+                className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 border border-slate-600 focus:border-amber-500 focus:outline-none disabled:opacity-50"
               >
-                {LOCATIONS.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
+                <option value="" disabled>
+                  {isCitiesLoading ? "Loading..." : "Select City"}
+                </option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
                   </option>
                 ))}
               </select>
@@ -378,8 +400,6 @@ export default function Navbar() {
                 >
                   Profile
                 </Link>
-
-                {/* Admin Link - Mobile */}
                 {isAdmin && (
                   <Link
                     to="/admin"
@@ -389,7 +409,6 @@ export default function Navbar() {
                     Admin Dashboard
                   </Link>
                 )}
-
                 <button
                   onClick={handleLogout}
                   className="block w-full text-center px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg transition-colors"

@@ -12,6 +12,8 @@ import Home from "./pages/Home";
 import UserProfilePage from "./pages/User/UserProfilePage";
 import AdminPage from "./pages/Admin";
 import MovieDetailsPage from "./pages/MovieDetails";
+import BookTicketsPage from "./pages/BookTicketsPage";
+import SeatSelectionPage from "./pages/SeatSelectionPage";
 
 const App = () => {
   return (
@@ -29,6 +31,8 @@ const App = () => {
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/movie/:id" element={<MovieDetailsPage />} />
+          <Route path="/book/:id" element={<BookTicketsPage />} />
+          <Route path="/seat-selection/:showId" element={<SeatSelectionPage />} />
         </Route>
       </Routes>
     </div>

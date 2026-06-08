@@ -53,6 +53,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await api.post("/api/v1/users/loginStepOne", form);
+      console.log(res);
 
       if (res.data.success) {
         setUserId(res.data.user);

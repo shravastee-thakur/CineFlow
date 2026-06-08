@@ -46,4 +46,5 @@ router.put(
   theaterController.restoreTheater,
 );
 
+router.get("/cities", theaterController.getAllCities);
 export default router;

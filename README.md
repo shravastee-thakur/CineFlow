@@ -76,3 +76,9 @@ Implemented Protections
 - mongo-sanitize: Prevents NoSQL injection via $where, $ne, etc.
 - Zod: Runtime validation of all incoming request bodies
 - Role Middleware: Server-side authorization checks on every protected route
+
+<img width="790" height="583" alt="Concurrency test" src="https://github.com/user-attachments/assets/03d809bb-0d04-43fa-8ca7-da07e7df6e0c" />
+<img width="743" height="474" alt="withBullMQ" src="https://github.com/user-attachments/assets/8a7164d8-9c59-4037-b54d-e085ea00baeb" />
+<img width="736" height="457" alt="withoutBullMQ" src="https://github.com/user-attachments/assets/3de00613-c5ec-489a-a3ff-09bd8dc795cf" />
+
+

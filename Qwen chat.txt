@@ -1,0 +1,10 @@
+https://clouddrop-frontend.onrender.com/
+
+
+1. Supabase Storage (Recommended)Supabase is built on top of AWS S3 and provides a very developer-friendly experience with PostgreSQL integration.Chunked Uploads: Supports resumable uploads using the TUS protocol (ideal for files up to 50MB, larger on paid).Free Tier (2026): 1 GB of storage, 5 GB egress, and 50,000 MAUs (Monthly Active Users) for auth.Best for MERN: Native SDK makes it easy to integrate file storage with user authentication.Note: Free projects pause after 7 days of inactivity.
+
+2. Cloudflare R2Cloudflare R2 is fully S3-compatible and is renowned for having no egress fees (meaning you don't pay to download or serve files).Chunked Uploads: Supports S3 Multipart Uploads, allowing you to split large files into chunks on the client side.Free Tier (2026): 10 GB of storage per month and 10 million Class B operations (reads).Best for: High-bandwidth projects (e.g., if your portfolio video is watched many times).
+
+3. UploadThingSpecifically designed for modern React/Next.js and MERN projects, UploadThing is easy to set up.Chunked Uploads: Handles chunking/resumable uploads automatically.Free Tier: Generous free tier for portfolio projects.
+
+4. Backblaze B2A highly popular S3-compatible alternative that is often used in place of AWS S3.Chunked Uploads: Fully supports S3 multipart uploading.Free Tier: 10 GB of storage free.

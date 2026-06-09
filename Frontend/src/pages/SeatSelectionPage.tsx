@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Ticket, Clock, MapPin, Star } from "lucide-react";
+import { ChevronLeft, Ticket, Clock, Star } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../utils/axiosInstance";
 
 interface Seat {
   seatNumber: string;
-  seatType: "standard" | "premium" | "recliner";
+  seatType: "standard" | "premium" | "recliner" | "empty";
   price: number;
   isBroken: boolean;
 }
@@ -44,7 +44,7 @@ interface Show {
   bookedSeats: string[];
 }
 
-type SeatStatus = "available" | "selected" | "booked" | "broken";
+type SeatStatus = "available" | "selected" | "booked" | "broken" | "empty";
 
 export default function SeatSelectionPage() {
   const { showId } = useParams<{ showId: string }>();
@@ -62,9 +62,8 @@ export default function SeatSelectionPage() {
       setIsLoading(true);
       try {
         const res = await api.get(
-          `http://localhost:5000/api/v1/shows/getShowById/${showId}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/shows/getShowById/${showId}`,
         );
-        console.log(res);
 
         if (res.data.success) {
           setShow(res.data.data);
@@ -80,6 +79,7 @@ export default function SeatSelectionPage() {
   }, [showId, navigate]);
 
   const getSeatStatus = (seat: Seat): SeatStatus => {
+    if (seat.seatType === "empty") return "empty";
     if (seat.isBroken) return "broken";
     if (show?.bookedSeats.includes(seat.seatNumber)) return "booked";
     if (selectedSeats.includes(seat.seatNumber)) return "selected";
@@ -91,7 +91,13 @@ export default function SeatSelectionPage() {
       .flatMap((row) => row.seats)
       .find((s) => s.seatNumber === seatNumber);
 
-    if (!seat || seat.isBroken || show?.bookedSeats.includes(seatNumber)) {
+    // Don't allow selection of empty/broken/booked seats
+    if (
+      !seat ||
+      seat.seatType === "empty" ||
+      seat.isBroken ||
+      show?.bookedSeats.includes(seatNumber)
+    ) {
       return;
     }
 
@@ -118,7 +124,6 @@ export default function SeatSelectionPage() {
 
     setIsSubmitting(true);
     try {
-      // Create booking (this will lock seats server-side)
       const res = await api.post(`/api/v1/bookings`, {
         showId,
         seats: selectedSeats,
@@ -128,7 +133,6 @@ export default function SeatSelectionPage() {
         toast.success("Seats locked! Proceeding to payment...", {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
         });
-        // Navigate to payment page with booking data
         navigate("/payment", {
           state: {
             bookingId: res.data.data._id,
@@ -153,6 +157,11 @@ export default function SeatSelectionPage() {
       minute: "2-digit",
       hour12: true,
     });
+  };
+
+  // Extract just the number part from seatNumber (e.g., "J20" → "20")
+  const getSeatDisplayNumber = (seatNumber: string) => {
+    return seatNumber.replace(/^[A-Z]+/, "");
   };
 
   if (isLoading) {
@@ -232,12 +241,6 @@ export default function SeatSelectionPage() {
                 <span>•</span>
                 <span className="text-amber-400">{show.screen.format}</span>
               </div>
-              <div className="flex items-center gap-1 text-sm text-slate-400 mt-2">
-                <MapPin className="w-4 h-4" />
-                <span>
-                  {show.theater.name}, {show.theater.city}
-                </span>
-              </div>
               <p className="text-sm text-slate-300 mt-1">
                 {formatTime(show.startTime)} • {show.screen.name}
               </p>
@@ -254,9 +257,6 @@ export default function SeatSelectionPage() {
               </div>
             </div>
           </div>
-          <p className="text-center text-sm text-slate-500">
-            {show.screen.audioType} • {show.screen.format}
-          </p>
         </div>
 
         {/* Seat Legend */}
@@ -277,6 +277,10 @@ export default function SeatSelectionPage() {
             <div className="w-5 h-5 rounded bg-red-500/20 border border-red-500/50" />
             <span className="text-slate-400">Broken</span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-transparent border border-dashed border-slate-600" />
+            <span className="text-slate-400">Aisle</span>
+          </div>
         </div>
 
         {/* Seat Layout */}
@@ -296,6 +300,18 @@ export default function SeatSelectionPage() {
                 <div className="flex gap-1 md:gap-1.5">
                   {row.seats.map((seat) => {
                     const status = getSeatStatus(seat);
+
+                    // Render gap/aisle as visual spacer
+                    if (status === "empty") {
+                      return (
+                        <div
+                          key={seat.seatNumber}
+                          className="w-8 h-8 md:w-10 md:h-10"
+                          title="Aisle"
+                        />
+                      );
+                    }
+
                     return (
                       <button
                         key={seat.seatNumber}
@@ -312,7 +328,7 @@ export default function SeatSelectionPage() {
                         }`}
                         title={`${seat.seatNumber} • ₹${seat.price} • ${seat.seatType}`}
                       >
-                        {seat.seatNumber.replace(row.rowName, "")}
+                        {getSeatDisplayNumber(seat.seatNumber)}
                       </button>
                     );
                   })}

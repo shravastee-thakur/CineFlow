@@ -10,7 +10,7 @@ const objectIdString = z
 
 const seatSchema = z.object({
   seatNumber: z.string().min(1, "Seat number is required"),
-  seatType: z.enum(["standard", "premium", "recliner"]),
+  seatType: z.enum(["standard", "premium", "recliner", "empty"]),
   price: z.coerce.number().min(0, "Price cannot be negative"),
   isBroken: z.boolean().default(false),
 });

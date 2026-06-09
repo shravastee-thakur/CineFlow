@@ -15,8 +15,18 @@ import {
 
 export interface ShowDto {
   _id: string;
-  movie: string;
-  screen: string | { _id: string; layout?: any[] };
+  movie:
+    | string
+    | {
+        _id: string;
+        title?: string;
+        duration?: number;
+        posterImage?: any;
+        rating: number;
+      };
+  screen:
+    | string
+    | { _id: string; layout?: any[]; format?: string; name?: string };
   theater: string;
   startTime: Date;
   endTime: Date;
@@ -41,12 +51,23 @@ function mapToShowDto(
 
   const baseScreen: ShowDto = {
     _id: obj._id.toString(),
-    movie: obj.movie.toString(),
+    movie:
+      obj.movie && (obj.movie as any)._id
+        ? {
+            _id: (obj.movie as any)._id.toString(),
+            title: (obj.movie as any).title,
+            duration: (obj.movie as any).duration,
+            posterImage: (obj.movie as any).posterImage,
+            rating: (obj.movie as any).rating,
+          }
+        : obj.movie.toString(),
     screen:
       obj.screen && (obj.screen as any)._id
         ? {
             _id: (obj.screen as any)._id.toString(),
             layout: (obj.screen as any).layout,
+            format: (obj.screen as any).format,
+            name: (obj.screen as any).name,
           }
         : obj.screen.toString(),
     theater: obj.theater?.toString(),

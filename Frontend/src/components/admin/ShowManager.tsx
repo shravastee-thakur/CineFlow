@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Edit2, Trash2, X, Filter, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Edit2, Trash2, X, Filter, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
 import { useShowStore } from "../../store/showStore";
@@ -11,8 +11,12 @@ interface Theater {
 
 interface Show {
   _id: string;
-  movie: string;
-  screen: string;
+  movie: {
+    _id: string;
+  };
+  screen: {
+    _id: string;
+  };
   theater: string;
   startTime: string;
   endTime: string;
@@ -43,7 +47,7 @@ const toastErrorStyle = {
   color: "#333",
 };
 
-export default function ShowManager() {
+const ShowManager = () => {
   const {
     selectedTheaterId,
     selectedScreenId,
@@ -59,10 +63,10 @@ export default function ShowManager() {
   } = useShowStore();
 
   const [shows, setShows] = useState<Show[]>([]);
+
   const [movies, setMovies] = useState<Movie[]>([]);
   const [screens, setScreens] = useState<Screen[]>([]);
   const [theaters, setTheaters] = useState<Theater[]>([]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Show | null>(null);
   const [form, setForm] = useState({ movie: "", screen: "", startTime: "" });
@@ -73,6 +77,7 @@ export default function ShowManager() {
     movies.find((m) => m._id === id)?.title || "Unknown Movie";
   const getScreenName = (id: string) =>
     screens.find((s) => s._id === id)?.name || "Unknown Screen";
+
   const getTheaterName = (id: string) =>
     theaters.find((t) => t._id === id)?.name || "Unknown Theater";
 
@@ -105,6 +110,7 @@ export default function ShowManager() {
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/getScreensByTheaterAdmin/${selectedTheaterId}`,
       );
       const data = res.data.data || res.data.screens || [];
+
       setScreens(data);
       if (
         selectedScreenId &&
@@ -150,7 +156,6 @@ export default function ShowManager() {
         url = `/api/v1/shows/getShowsByTheaterAdmin/${selectedTheaterId}`;
 
       const res = await api.get(`${import.meta.env.VITE_BACKEND_URL}${url}`);
-      console.log(res);
 
       setShows(res.data.data || []);
     } catch (err: any) {
@@ -186,8 +191,8 @@ export default function ShowManager() {
   const openEditModal = (show: Show) => {
     setEditing(show);
     setForm({
-      movie: show.movie,
-      screen: show.screen,
+      movie: show.movie._id,
+      screen: show.screen._id,
       startTime: new Date(show.startTime).toISOString().slice(0, 16),
     });
     setIsModalOpen(true);
@@ -274,6 +279,8 @@ export default function ShowManager() {
     if (!showCancelled && show.status === "cancelled") return false;
     return true;
   });
+
+  console.log(filteredShows);
 
   return (
     <div className="space-y-6">
@@ -406,12 +413,12 @@ export default function ShowManager() {
                   <td
                     className={`px-4 py-3 font-medium ${show.isDeleted ? "text-slate-500 line-through" : "text-white"}`}
                   >
-                    {getMovieTitle(show.movie)}
+                    {getMovieTitle(show.movie._id)}
                   </td>
                   <td
                     className={`px-4 py-3 ${show.isDeleted ? "text-slate-600" : "text-slate-400"}`}
                   >
-                    {getScreenName(show.screen)}
+                    {getScreenName(show.screen._id)}
                   </td>
                   <td className="px-4 py-3 text-slate-400">
                     {getTheaterName(show.theater)}
@@ -584,4 +591,6 @@ export default function ShowManager() {
       )}
     </div>
   );
-}
+};
+
+export default ShowManager;

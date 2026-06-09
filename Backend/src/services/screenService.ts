@@ -8,7 +8,7 @@ import { ApiError } from "../utils/apiError.js";
 
 export interface SeatDto {
   seatNumber: string;
-  seatType: "standard" | "premium" | "recliner";
+  seatType: "standard" | "premium" | "recliner" | "empty";
   price: number;
   isBroken: boolean;
 }

@@ -6,10 +6,10 @@ import toast from "react-hot-toast";
 
 export default function Navbar() {
   const {
-    userId,
     role,
     isVerified,
     activeLocation,
+    userInfo,
     setActiveLocation,
     clearAuth,
   } = useAuthStore();
@@ -257,7 +257,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded-lg"
                 >
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-semibold text-xs sm:text-sm border border-amber-500/30">
-                    {userId?.charAt(0).toUpperCase() || "U"}
+                    {userInfo?.username?.charAt(0).toUpperCase() || "U"}
                   </div>
                 </button>
 

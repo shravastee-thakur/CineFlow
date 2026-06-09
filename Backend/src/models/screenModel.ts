@@ -31,7 +31,7 @@ const seatSchema = new Schema<ISeat>(
     },
     seatType: {
       type: String,
-      enum: ["standard", "premium", "recliner"],
+      enum: ["standard", "premium", "recliner", "empty"],
       required: true,
     },
     price: {

@@ -29,15 +29,19 @@ interface Theater {
   city: string;
 }
 
+// ✅ Updated: movie is an object with _id
 interface Show {
   _id: string;
-  movie: string;
+  movie: {
+    _id: string;
+    title?: string;
+  };
   screen: {
     _id: string;
     name: string;
     format: string;
   };
-  theater: string;
+  theater: string | { _id: string; name: string };
   startTime: string;
   availableSeats: number;
   totalSeats: number;
@@ -67,7 +71,7 @@ const generateDates = () => {
   return dates;
 };
 
-const BookTicketsPage = () => {
+export default function BookTicketsPage() {
   const { id: movieId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { activeLocation } = useAuthStore();
@@ -78,10 +82,6 @@ const BookTicketsPage = () => {
   >([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    format: "",
-    language: "",
-  });
 
   const dates = useMemo(() => generateDates(), []);
 
@@ -95,7 +95,6 @@ const BookTicketsPage = () => {
         const movieRes = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/v1/movies/getMovieById/${movieId}`,
         );
-
         if (movieRes.data.success) {
           setMovie(movieRes.data.data);
         }
@@ -116,15 +115,28 @@ const BookTicketsPage = () => {
               );
               const allShows = showsRes.data.data || [];
 
-              // Filter shows for this movie and selected date
+              // ✅ Fixed: Compare show.movie._id with movieId
+              // ✅ Fixed: Use UTC date comparison to avoid timezone issues
               const movieShows = allShows.filter((show: Show) => {
-                const showDate = new Date(show.startTime);
-                const isSameDay =
-                  showDate.getDate() === selectedDate.getDate() &&
-                  showDate.getMonth() === selectedDate.getMonth() &&
-                  showDate.getFullYear() === selectedDate.getFullYear();
+                // Compare movie IDs
+                const showMovieId =
+                  typeof show.movie === "string" ? show.movie : show.movie._id;
+                if (showMovieId !== movieId) return false;
 
-                return show.movie === movieId && isSameDay;
+                // Compare dates in UTC to avoid timezone mismatches
+                const showDate = new Date(show.startTime);
+                const selectedUTC = Date.UTC(
+                  selectedDate.getFullYear(),
+                  selectedDate.getMonth(),
+                  selectedDate.getDate(),
+                );
+                const showUTC = Date.UTC(
+                  showDate.getFullYear(),
+                  showDate.getMonth(),
+                  showDate.getDate(),
+                );
+
+                return showUTC === selectedUTC;
               });
 
               return {
@@ -139,11 +151,13 @@ const BookTicketsPage = () => {
           );
 
           // Filter out theaters with no shows
-          setTheatersWithShows(
-            theatersWithShowsData.filter((t) => t.shows.length > 0),
+          const filtered = theatersWithShowsData.filter(
+            (t) => t.shows.length > 0,
           );
+          setTheatersWithShows(filtered);
         }
       } catch (err: any) {
+        console.error("Fetch error:", err);
         toast.error(err.response?.data?.message || "Failed to load shows");
       } finally {
         setIsLoading(false);
@@ -172,19 +186,6 @@ const BookTicketsPage = () => {
   const handleShowSelect = (showId: string) => {
     navigate(`/seat-selection/${showId}`);
   };
-
-  const filteredTheaters = useMemo(() => {
-    return theatersWithShows.filter(({ shows }) => {
-      if (
-        filters.format &&
-        !shows.some((s) => s.screen.format === filters.format)
-      )
-        return false;
-      if (filters.language && !movie?.language.includes(filters.language))
-        return false;
-      return true;
-    });
-  }, [theatersWithShows, filters, movie]);
 
   if (isLoading) {
     return (
@@ -302,7 +303,7 @@ const BookTicketsPage = () => {
 
         {/* Theaters & Shows */}
         <div className="space-y-6">
-          {filteredTheaters.length === 0 ? (
+          {theatersWithShows.length === 0 ? (
             <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800">
               <Ticket className="w-12 h-12 mx-auto mb-3 text-slate-600" />
               <p className="text-slate-400">
@@ -313,7 +314,7 @@ const BookTicketsPage = () => {
               </p>
             </div>
           ) : (
-            filteredTheaters.map(({ theater, shows }) => (
+            theatersWithShows.map(({ theater, shows }) => (
               <div
                 key={theater._id}
                 className="bg-slate-900 rounded-2xl border border-slate-800 p-6"
@@ -370,6 +371,4 @@ const BookTicketsPage = () => {
       </div>
     </div>
   );
-};
-
-export default BookTicketsPage;
+}

@@ -20,7 +20,8 @@ export const findShowById = async (
   showId: string,
 ): Promise<ShowDocument | null> => {
   return Show.findById(showId)
-    .populate({ path: "screen", select: "layout" })
+    .populate({ path: "screen", select: "layout format name" })
+    .populate({ path: "movie", select: "title duration posterImage rating" })
     .exec();
 };
 

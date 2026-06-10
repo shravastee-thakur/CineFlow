@@ -14,6 +14,7 @@ import AdminPage from "./pages/Admin";
 import MovieDetailsPage from "./pages/MovieDetails";
 import BookTicketsPage from "./pages/BookTicketsPage";
 import SeatSelectionPage from "./pages/SeatSelectionPage";
+import PaymentPage from "./pages/PaymentPage";
 
 const App = () => {
   return (
@@ -32,7 +33,11 @@ const App = () => {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/movie/:id" element={<MovieDetailsPage />} />
           <Route path="/book/:id" element={<BookTicketsPage />} />
-          <Route path="/seat-selection/:showId" element={<SeatSelectionPage />} />
+          <Route
+            path="/seat-selection/:showId"
+            element={<SeatSelectionPage />}
+          />
+          <Route path="/payment" element={<PaymentPage />} />
         </Route>
       </Routes>
     </div>

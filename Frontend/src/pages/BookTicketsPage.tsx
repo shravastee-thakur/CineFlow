@@ -29,7 +29,6 @@ interface Theater {
   city: string;
 }
 
-// ✅ Updated: movie is an object with _id
 interface Show {
   _id: string;
   movie: {
@@ -43,6 +42,7 @@ interface Show {
   };
   theater: string | { _id: string; name: string };
   startTime: string;
+  endTime: string;
   availableSeats: number;
   totalSeats: number;
   price: number;
@@ -71,7 +71,7 @@ const generateDates = () => {
   return dates;
 };
 
-export default function BookTicketsPage() {
+const BookTicketsPage = () => {
   const { id: movieId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { activeLocation } = useAuthStore();
@@ -114,9 +114,10 @@ export default function BookTicketsPage() {
                 `${import.meta.env.VITE_BACKEND_URL}/api/v1/shows/getShowsByTheater/${theater._id}`,
               );
               const allShows = showsRes.data.data || [];
+              console.log(allShows);
 
-              // ✅ Fixed: Compare show.movie._id with movieId
-              // ✅ Fixed: Use UTC date comparison to avoid timezone issues
+              //  Compare show.movie._id with movieId
+              // Use UTC date comparison to avoid timezone issues
               const movieShows = allShows.filter((show: Show) => {
                 // Compare movie IDs
                 const showMovieId =
@@ -136,7 +137,16 @@ export default function BookTicketsPage() {
                   showDate.getDate(),
                 );
 
-                return showUTC === selectedUTC;
+                if (showUTC !== selectedUTC) return false;
+
+                const now = new Date();
+                const showEndTime = new Date(show.endTime);
+
+                if (showEndTime < now) {
+                  return false;
+                }
+
+                return true;
               });
 
               return {
@@ -371,4 +381,6 @@ export default function BookTicketsPage() {
       </div>
     </div>
   );
-}
+};
+
+export default BookTicketsPage;

@@ -48,6 +48,16 @@ function mapToShowDto(
   isAdmin: boolean = false,
 ): ShowDto | ShowAdminDto {
   const obj = show.toObject();
+  const now = new Date();
+
+  let currentStatus = obj.status;
+  if (
+    obj.status === "scheduled" &&
+    obj.endTime &&
+    new Date(obj.endTime) < now
+  ) {
+    currentStatus = "completed";
+  }
 
   const baseScreen: ShowDto = {
     _id: obj._id.toString(),
@@ -74,7 +84,7 @@ function mapToShowDto(
     startTime: obj.startTime,
     endTime: obj.endTime,
     bookedSeats: obj.bookedSeats,
-    status: obj.status,
+    status: currentStatus,
     createdAt: obj.createdAt,
     updatedAt: obj.updatedAt,
   };

@@ -124,13 +124,16 @@ export default function SeatSelectionPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post(`/api/v1/bookings`, {
-        showId,
-        seats: selectedSeats,
-      });
+      const res = await api.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/bookings/createBooking`,
+        {
+          showId,
+          seats: selectedSeats,
+        },
+      );
 
       if (res.data.success) {
-        toast.success("Seats locked! Proceeding to payment...", {
+        toast.success(res.data.message, {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
         });
         navigate("/payment", {
@@ -262,7 +265,7 @@ export default function SeatSelectionPage() {
         {/* Seat Legend */}
         <div className="flex flex-wrap justify-center gap-4 mb-6 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-slate-700 border border-slate-600" />
+            <div className="w-5 h-5 rounded bg-slate-700 border border-green-600" />
             <span className="text-slate-400">Available</span>
           </div>
           <div className="flex items-center gap-2">
@@ -276,10 +279,6 @@ export default function SeatSelectionPage() {
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-red-500/20 border border-red-500/50" />
             <span className="text-slate-400">Broken</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-transparent border border-dashed border-slate-600" />
-            <span className="text-slate-400">Aisle</span>
           </div>
         </div>
 
@@ -319,7 +318,7 @@ export default function SeatSelectionPage() {
                         disabled={status === "booked" || status === "broken"}
                         className={`w-8 h-8 md:w-10 md:h-10 rounded-lg border text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed ${
                           status === "available"
-                            ? "bg-slate-700 border-slate-600 hover:bg-slate-600 hover:border-amber-500/50 text-slate-200"
+                            ? "bg-slate-700 border-green-600 hover:bg-slate-600 hover:border-amber-500/50 text-slate-200"
                             : status === "selected"
                               ? "bg-amber-500 border-amber-400 text-slate-950 font-semibold"
                               : status === "booked"

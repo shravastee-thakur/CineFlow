@@ -14,7 +14,7 @@ import AdminPage from "./pages/Admin";
 import MovieDetailsPage from "./pages/MovieDetails";
 import BookTicketsPage from "./pages/BookTicketsPage";
 import SeatSelectionPage from "./pages/SeatSelectionPage";
-import PaymentPage from "./pages/PaymentPage";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const App = () => {
   return (
@@ -37,7 +37,7 @@ const App = () => {
             path="/seat-selection/:showId"
             element={<SeatSelectionPage />}
           />
-          <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
         </Route>
       </Routes>
     </div>

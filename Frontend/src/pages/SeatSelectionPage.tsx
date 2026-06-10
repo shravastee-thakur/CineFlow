@@ -136,7 +136,7 @@ export default function SeatSelectionPage() {
         toast.success(res.data.message, {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
         });
-        navigate("/payment", {
+        navigate("/checkout", {
           state: {
             bookingId: res.data.data._id,
             seats: selectedSeats,

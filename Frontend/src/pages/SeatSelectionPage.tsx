@@ -139,6 +139,7 @@ export default function SeatSelectionPage() {
         navigate("/checkout", {
           state: {
             bookingId: res.data.data._id,
+            createdAt: res.data.data.createdAt,
             seats: selectedSeats,
             total: totalPrice,
             show,

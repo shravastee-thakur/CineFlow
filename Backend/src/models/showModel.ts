@@ -8,7 +8,7 @@ export interface IShow {
   endTime: Date;
   bookedSeats: string[];
   status: "scheduled" | "cancelled" | "completed";
-  isDeleted: Boolean;
+  isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

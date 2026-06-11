@@ -18,7 +18,7 @@ export interface IScreen {
   format: "2D" | "3D" | "IMAX" | "4DX";
   audioType: "Standard" | "7.1 Surround" | "Dolby Atmos";
   layout: IRow[];
-  isDeleted: Boolean;
+  isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

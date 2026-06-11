@@ -4,7 +4,7 @@ export interface ITheater {
   name: string;
   location: string;
   city: string;
-  isDeleted: Boolean;
+  isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

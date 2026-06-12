@@ -23,6 +23,8 @@ const envSchema = z.object({
   CLOUDINARY_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
+
+  STRIPE_SECRET_KEY: z.string().min(1),
 });
 
 const _env = envSchema.safeParse(process.env);

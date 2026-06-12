@@ -12,23 +12,23 @@ interface MovieCardData {
 const TRENDING_MOVIES: MovieCardData[] = [
   {
     id: "1",
-    title: "Karuppu",
+    title: "Masters of the Universe",
     genre: "Action | Thriller",
-    rating: 8.7,
-    imageUrl: "./Movie1.png",
-  },
-  {
-    id: "2",
-    title: "Obsess",
-    genre: "Mystery | Drama",
-    rating: 9.1,
+    rating: 4,
     imageUrl: "./Movie 2.png",
   },
   {
+    id: "2",
+    title: "Karuppu",
+    genre: "Action | Thriller",
+    rating: 3,
+    imageUrl: "./Movie1.png",
+  },
+  {
     id: "3",
-    title: "Beast of War",
-    genre: "Action | War",
-    rating: 8.4,
+    title: "29",
+    genre: "Comedy | Romance",
+    rating: 3,
     imageUrl: "./Movie 3.png",
   },
 ];
@@ -114,9 +114,8 @@ export default function HorizontalMovieCarousel() {
             }}
           >
             {TRENDING_MOVIES.map((movie) => (
-              <Link
+              <div
                 key={movie.id}
-                to={`/movie/${movie.id}`}
                 className="carousel-card flex-none snap-start w-[85vw] sm:w-[650px] md:w-[850px] lg:w-[1139px] aspect-[1139/339] relative group/card rounded-xl overflow-hidden border border-slate-800 hover:border-amber-500/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-950"
               >
                 <img
@@ -126,8 +125,8 @@ export default function HorizontalMovieCarousel() {
                   loading="lazy"
                   decoding="async"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 to-transparent" />
+                <div className="absolute inset-0" />
+                <div className="absolute inset-0" />
                 <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 flex items-end justify-between gap-3">
                   <div className="space-y-1.5">
                     <span className="inline-block px-2 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] sm:text-xs font-semibold uppercase tracking-wider rounded-full border border-amber-500/30 backdrop-blur-sm">
@@ -150,7 +149,7 @@ export default function HorizontalMovieCarousel() {
                     </span>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
 

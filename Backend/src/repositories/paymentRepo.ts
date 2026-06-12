@@ -8,4 +8,25 @@ export type CreatePaymentData = Pick<
   "user" | "booking" | "stripeSessionId" | "amount" | "status"
 >;
 
-export type UpdatePaymentData = Partial<CreatePaymentData>;
+export const createPayment = async (
+  data: CreatePaymentData,
+): Promise<PaymentDocument> => {
+  return Payment.create(data);
+};
+
+export const findPaymentBySessionId = async (
+  sessionId: string,
+): Promise<PaymentDocument | null> => {
+  return Payment.findOne({ stripeSessionId: sessionId }).exec();
+};
+
+export const updatePayment = async (
+  paymentId: string,
+  status: IPayment["status"],
+): Promise<PaymentDocument | null> => {
+  return Payment.findByIdAndUpdate(
+    paymentId,
+    { status },
+    { new: true, runValidators: true },
+  ).exec();
+};

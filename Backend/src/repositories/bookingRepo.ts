@@ -16,11 +16,11 @@ export const createBooking = async (
 };
 
 export const updateBookingStatus = async (
-  id: string,
+  bookingId: string,
   newStatus: IBooking["status"],
 ): Promise<BookingDocument | null> => {
   return Booking.findByIdAndUpdate(
-    id,
+    bookingId,
     { status: newStatus },
     { new: true, runValidators: true },
   ).exec();
@@ -29,6 +29,7 @@ export const updateBookingStatus = async (
 export const findBookingsByUser = async (userId: string): Promise<any[]> => {
   return Booking.find({ user: userId })
     .sort({ createdAt: -1 })
+    .populate("user", "name email")
     .populate({
       path: "show",
       select: "startTime movie show",
@@ -50,6 +51,7 @@ export const findBookingByBookingId = async (
   bookingId: string,
 ): Promise<any | null> => {
   return Booking.findOne({ bookingId })
+    .populate("user", "name email")
     .populate({
       path: "show",
       select: "startTime movie show",

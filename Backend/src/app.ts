@@ -11,6 +11,7 @@ import theaterRoutes from "./routes/theaterRoutes.js";
 import screenRoutes from "./routes/screenRoutes.js";
 import showRoutes from "./routes/showRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import paymentRoutes from "./routes/paymentRoutea.js";
 
 const app = express();
 
@@ -48,6 +49,9 @@ app.use("/api/v1/shows", showRoutes);
 
 app.use("/api/v1/bookings", bookingRoutes);
 // http://localhost:5000/api/v1/bookings/createBooking
+
+app.use("/api/v1/payments", paymentRoutes);
+// http://localhost:5000/api/v1/payments/payment
 
 app.use(errorHandler);
 

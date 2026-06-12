@@ -1,6 +1,7 @@
 import * as bookingRepo from "../repositories/bookingRepo.js";
 import * as showRepo from "../repositories/showRepo.js";
 import * as screenRepo from "../repositories/screenRepo.js";
+import * as queueService from "../services/queueService.js";
 import {
   BookingDocument,
   CreateBookingData,
@@ -43,6 +44,9 @@ const mapToBookingDto = (booking: BookingDocument): BookingDto => {
 
 export interface TicketDto {
   bookingId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
   seats: string[];
   totalPrice: number;
   status: string;
@@ -148,6 +152,9 @@ export const findBookingsByUser = async (
 
   return bookings.map((booking: any) => ({
     bookingId: booking.bookingId,
+    userId: booking.user?._id?.toString() || booking.user?.toString() || "",
+    userName: booking.user?.name || "Guest",
+    userEmail: booking.user?.email || "",
     seats: booking.seats,
     totalPrice: booking.totalPrice,
     status: booking.status,
@@ -169,6 +176,9 @@ export const findBookingByBookingId = async (
 
   return {
     bookingId: booking.bookingId,
+    userId: booking.user?._id?.toString() || booking.user?.toString() || "",
+    userName: booking.user?.name || "Guest",
+    userEmail: booking.user?.email || "",
     seats: booking.seats,
     totalPrice: booking.totalPrice,
     status: booking.status,
@@ -187,4 +197,28 @@ export const findAllBookings = async (): Promise<BookingDto[]> => {
   }
 
   return bookings.map(mapToBookingDto);
+};
+
+export const triggerBookingConfirmationEmail = async (
+  customBookingId: string,
+) => {
+  const rawBooking = await bookingRepo.findBookingByBookingId(customBookingId);
+  if (!rawBooking) return;
+
+  const formattedTime = new Date(rawBooking.show.startTime).toLocaleString(
+    "en-IN",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  );
+
+  await queueService.sendBookingConfirmationEmail(
+    rawBooking.user.email,
+    rawBooking.bookingId,
+    rawBooking.show.movie.title,
+    formattedTime,
+    rawBooking.seats,
+    rawBooking.show.screen.theater.name,
+  );
 };

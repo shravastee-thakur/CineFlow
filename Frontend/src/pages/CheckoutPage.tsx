@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft, Clock, Ticket, ShieldCheck, Info } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../utils/axiosInstance";
+import { useAuthStore } from "../store/authStore";
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -64,7 +65,8 @@ interface CheckoutState {
   };
 }
 
-export default function CheckoutPage() {
+const CheckoutPage = () => {
+  const { userId } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -76,7 +78,6 @@ export default function CheckoutPage() {
   });
   const [isExpired, setIsExpired] = useState(timeLeft === 0);
 
-  // Redirect if no data
   useEffect(() => {
     if (!checkoutData) {
       toast.error("No booking data found. Please select seats first.");
@@ -142,7 +143,7 @@ export default function CheckoutPage() {
       console.log(res);
 
       if (res.data.success) {
-        toast.success("Time expired! Your seats have been released.", {
+        toast.success("Booking cancelled! Your seats have been released.", {
           style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
         });
       }
@@ -154,9 +155,25 @@ export default function CheckoutPage() {
       navigate(-1);
     }
   };
+  console.log(checkoutData);
 
-  const handleProceedToPayment = () => {
-    toast.success("Payment module coming soon! This is a demo checkout page.");
+  const handleProceedToPayment = async () => {
+    if (!checkoutData) return;
+    try {
+      const res = await api.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/payments/payment`,
+        { userId, bookingId: checkoutData.bookingId },
+      );
+      console.log(res);
+      if (res.data.success) {
+        const checkoutUrl = res.data.data.url;
+        window.location.href = checkoutUrl;
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message, {
+        style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
+      });
+    }
   };
 
   if (!checkoutData) return null;
@@ -285,4 +302,6 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
-}
+};
+
+export default CheckoutPage;

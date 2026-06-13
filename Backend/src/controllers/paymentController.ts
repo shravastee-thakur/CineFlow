@@ -12,7 +12,7 @@ export const createPayment = async (
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-    const bookingId = req.body;
+    const { bookingId } = req.body;
     if (!bookingId) {
       return res
         .status(400)
@@ -39,7 +39,7 @@ export const verifyPayment = async (
   next: NextFunction,
 ) => {
   try {
-    const sessionId = req.query.session_id as string;
+    const sessionId = req.body.sessionId as string;
     if (!sessionId) {
       return res
         .status(400)

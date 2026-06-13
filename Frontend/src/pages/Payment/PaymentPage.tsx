@@ -9,7 +9,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 // } from "@stripe/react-stripe-js";
 import { ChevronLeft, Ticket, Lock, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
-import api from "../utils/axiosInstance";
+import api from "../../utils/axiosInstance";
 
 // Initialize Stripe (replace with your public key)
 // const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);

@@ -57,6 +57,21 @@ export interface TicketDto {
   theaterName: string;
 }
 
+const mapToTicketDto = (booking: any): TicketDto => ({
+  bookingId: booking.bookingId,
+  userId: booking.user?._id?.toString() || booking.user?.toString() || "",
+  userName: booking.user?.name || "Guest",
+  userEmail: booking.user?.email || "",
+  seats: booking.seats,
+  totalPrice: booking.totalPrice,
+  status: booking.status,
+  showTime: booking.show.startTime,
+  movieTitle: booking.show.movie.title,
+  moviePoster: booking.show.movie.posterImage?.url || "",
+  screenName: booking.show.screen.name,
+  theaterName: booking.show.screen.theater.name,
+});
+
 export const createBooking = async (
   userId: string,
   bookingData: CreateBookingInput,
@@ -66,6 +81,10 @@ export const createBooking = async (
   if (!show) {
     throw new ApiError(409, "One or more selected seats are already taken.");
   }
+
+  const now = new Date();
+  const startTime = new Date(show.startTime);
+  const endTime = new Date(show.endTime);
 
   // Fetch the screen to calculate the secure total price
   const screen = await screenRepo.findScreenById(show.screen.toString());
@@ -150,44 +169,29 @@ export const findBookingsByUser = async (
     throw new ApiError(404, "Bookings not found");
   }
 
-  return bookings.map((booking: any) => ({
-    bookingId: booking.bookingId,
-    userId: booking.user?._id?.toString() || booking.user?.toString() || "",
-    userName: booking.user?.name || "Guest",
-    userEmail: booking.user?.email || "",
-    seats: booking.seats,
-    totalPrice: booking.totalPrice,
-    status: booking.status,
-    showTime: booking.show.startTime,
-    movieTitle: booking.show.movie.title,
-    moviePoster: booking.show.movie.posterImage?.url || "",
-    screenName: booking.show.screen.name,
-    theaterName: booking.show.screen.theater.name,
-  }));
+  return bookings.map(mapToTicketDto);
 };
 
 export const findBookingByBookingId = async (
-  bookingId: string,
+  customBookingId: string,
 ): Promise<TicketDto | null> => {
-  const booking = await bookingRepo.findBookingByBookingId(bookingId);
+  const booking = await bookingRepo.findBookingByBookingId(customBookingId);
   if (!booking) {
     throw new ApiError(404, "Booking not found");
   }
 
-  return {
-    bookingId: booking.bookingId,
-    userId: booking.user?._id?.toString() || booking.user?.toString() || "",
-    userName: booking.user?.name || "Guest",
-    userEmail: booking.user?.email || "",
-    seats: booking.seats,
-    totalPrice: booking.totalPrice,
-    status: booking.status,
-    showTime: booking.show.startTime,
-    movieTitle: booking.show.movie.title,
-    moviePoster: booking.show.movie.posterImage?.url || "",
-    screenName: booking.show.screen.name,
-    theaterName: booking.show.screen.theater.name,
-  };
+  return mapToTicketDto(booking);
+};
+
+export const findBookingById = async (
+  mongoId: string,
+): Promise<TicketDto | null> => {
+  const booking = await bookingRepo.findBookingById(mongoId);
+  if (!booking) {
+    throw new ApiError(404, "Booking not found");
+  }
+
+  return mapToTicketDto(booking);
 };
 
 export const findAllBookings = async (): Promise<BookingDto[]> => {

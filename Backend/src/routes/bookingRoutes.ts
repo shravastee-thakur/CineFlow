@@ -15,9 +15,15 @@ router.get(
 );
 
 router.get(
-  "/getBookingById/:id",
+  "/getBookingByCustomId/:id",
   authenticate,
-  bookingController.getBookingById,
+  bookingController.getBookingByCustomId,
+);
+
+router.get(
+  "/getBookingByMongoId/:id",
+  authenticate,
+  bookingController.getBookingByMongoId,
 );
 
 router.get("/getMyBookings", authenticate, bookingController.getMyBookings);

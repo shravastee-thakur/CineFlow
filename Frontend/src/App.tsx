@@ -15,6 +15,8 @@ import MovieDetailsPage from "./pages/MovieDetails";
 import BookTicketsPage from "./pages/BookTicketsPage";
 import SeatSelectionPage from "./pages/SeatSelectionPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import PaymentSuccess from "./pages/Payment/PaymentSuccess";
+import PaymentFailure from "./pages/Payment/PaymentFailure";
 
 const App = () => {
   return (
@@ -26,6 +28,11 @@ const App = () => {
         <Route path="/verifyOtp" element={<VerifyOTPPage />} />
         <Route path="/forget-password" element={<ForgetPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route
+          path="/payment-success/:bookingId"
+          element={<PaymentSuccess />}
+        />
+        <Route path="/payment-failure" element={<PaymentFailure />} />
 
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />

@@ -116,8 +116,6 @@ const BookTicketsPage = () => {
               const allShows = showsRes.data.data || [];
               console.log(allShows);
 
-              //  Compare show.movie._id with movieId
-              // Use UTC date comparison to avoid timezone issues
               const movieShows = allShows.filter((show: Show) => {
                 // Compare movie IDs
                 const showMovieId =
@@ -138,15 +136,6 @@ const BookTicketsPage = () => {
                 );
 
                 if (showUTC !== selectedUTC) return false;
-
-                const now = new Date();
-                const showEndTime = new Date(show.endTime);
-
-                if (showEndTime < now) {
-                  return false;
-                }
-
-                return true;
               });
 
               return {

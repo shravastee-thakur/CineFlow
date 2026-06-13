@@ -63,22 +63,42 @@ export const updateBookingStatus = async (
   }
 };
 
-export const getBookingById = async (
+export const getBookingByCustomId = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const bookingId = req.params.id as string;
-
-    const booking = await bookingService.findBookingByBookingId(bookingId);
+    const customBookingId = req.params.id as string;
+    const booking =
+      await bookingService.findBookingByBookingId(customBookingId);
 
     return res.status(200).json({
       success: true,
       data: booking,
     });
   } catch (error) {
-    logger.error(`Get Booking By Id error: ${(error as Error).message}`);
+    logger.error(`Get Booking By Custom Id error: ${(error as Error).message}`);
+    next(error);
+  }
+};
+
+export const getBookingByMongoId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mongoId = req.params.id as string;
+
+    const booking = await bookingService.findBookingById(mongoId);
+
+    return res.status(200).json({
+      success: true,
+      data: booking,
+    });
+  } catch (error) {
+    logger.error(`Get Booking By Mongo Id error: ${(error as Error).message}`);
     next(error);
   }
 };

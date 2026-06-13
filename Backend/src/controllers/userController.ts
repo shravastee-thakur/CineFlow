@@ -55,7 +55,7 @@ export const loginStepOne = async (
     const otp = await userService.processLoginOtp(user.email);
     console.log(otp);
 
-    // await queueService.sendLoginOtpEmail(user.email, otp);
+    await queueService.sendLoginOtpEmail(user.email, otp);
 
     logger.info(`OTP sent to ${user.email}`);
 

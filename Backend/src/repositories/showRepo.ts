@@ -10,6 +10,16 @@ export type CreateShowData = Pick<
 
 export type UpdateShowData = Partial<CreateShowData>;
 
+const getActiveShowQuery = (includeDeleted: boolean) => {
+  const query: any = {
+    startTime: { $gt: new Date() }, // ✅ Only future shows
+  };
+  if (!includeDeleted) {
+    query.isDeleted = { $ne: true };
+  }
+  return query;
+};
+
 export const createShow = async (
   data: CreateShowData,
 ): Promise<ShowDocument> => {
@@ -29,7 +39,10 @@ export const findShowsByTheater = async (
   theaterId: string,
   includeDeleted: boolean = false,
 ): Promise<ShowDocument[]> => {
-  const query = Show.find({ theater: theaterId });
+  const query = Show.find({
+    theater: theaterId,
+    ...getActiveShowQuery(includeDeleted),
+  });
   if (includeDeleted) {
     query.select("+isDeleted");
   } else {
@@ -42,7 +55,10 @@ export const findShowsByScreen = async (
   screenId: string,
   includeDeleted: boolean = false,
 ): Promise<ShowDocument[]> => {
-  const query = Show.find({ screen: screenId });
+  const query = Show.find({
+    screen: screenId,
+    ...getActiveShowQuery(includeDeleted),
+  });
 
   if (includeDeleted) {
     query.select("+isDeleted");
@@ -57,7 +73,10 @@ export const findShowsByMovie = async (
   movieId: string,
   includeDeleted: boolean = false,
 ): Promise<ShowDocument[]> => {
-  const query = Show.find({ movie: movieId });
+  const query = Show.find({
+    movie: movieId,
+    ...getActiveShowQuery(includeDeleted),
+  });
   if (includeDeleted) {
     query.select("+isDeleted");
   } else {

@@ -27,7 +27,7 @@ export interface BookingDto {
 }
 
 const mapToBookingDto = (booking: BookingDocument): BookingDto => {
-  const obj = booking.toObject();
+  const obj = booking.toObject ? booking.toObject() : booking;
 
   return {
     _id: obj._id.toString(),
@@ -71,6 +71,13 @@ const mapToTicketDto = (booking: any): TicketDto => ({
   screenName: booking.show.screen.name,
   theaterName: booking.show.screen.theater.name,
 });
+
+export interface PaginatedBookingResponse {
+  bookings: TicketDto[] | BookingDto[];
+  currentPage: number;
+  totalPages: number;
+  totalBookings: number;
+}
 
 export const createBooking = async (
   userId: string,
@@ -163,13 +170,23 @@ export const updateBookingStatus = async (
 
 export const findBookingsByUser = async (
   userId: string,
-): Promise<TicketDto[]> => {
-  const bookings = await bookingRepo.findBookingsByUser(userId);
+  page: number,
+  limit: number,
+): Promise<PaginatedBookingResponse> => {
+  const totalBookings = await bookingRepo.countBookingsUser(userId);
+
+  const bookings = await bookingRepo.findBookingsByUser(userId, page, limit);
   if (!bookings) {
     throw new ApiError(404, "Bookings not found");
   }
+  const totalPages = Math.ceil(totalBookings / limit);
 
-  return bookings.map(mapToTicketDto);
+  return {
+    bookings: bookings.map(mapToTicketDto),
+    totalPages,
+    currentPage: page,
+    totalBookings,
+  };
 };
 
 export const findBookingByBookingId = async (
@@ -194,13 +211,23 @@ export const findBookingById = async (
   return mapToTicketDto(booking);
 };
 
-export const findAllBookings = async (): Promise<BookingDto[]> => {
-  const bookings = await bookingRepo.findAllBookings();
+export const findAllBookings = async (
+  page: number,
+  limit: number,
+): Promise<PaginatedBookingResponse> => {
+  const totalBookings = await bookingRepo.countAllBookings();
+  const bookings = await bookingRepo.findAllBookings(page, limit);
   if (!bookings) {
     throw new ApiError(404, "Bookings not found");
   }
+  const totalPages = Math.ceil(totalBookings / limit);
 
-  return bookings.map(mapToBookingDto);
+  return {
+    bookings: bookings.map(mapToBookingDto),
+    totalPages,
+    currentPage: page,
+    totalBookings,
+  };
 };
 
 export const triggerBookingConfirmationEmail = async (

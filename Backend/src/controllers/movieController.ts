@@ -50,7 +50,15 @@ export const getAllMoviesUser = async (
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
 
     const movies = await movieService.findAllMoviesUser(page, limit);
-    return res.status(200).json({ success: true, data: movies });
+    return res.status(200).json({
+      success: true,
+      data: movies,
+      pagination: {
+        currentPage: movies.currentPage,
+        totalPages: movies.totalPages,
+        totalBookings: movies.totalMovies,
+      },
+    });
   } catch (error) {
     logger.error(`Get all Movies User error: ${(error as Error).message}`);
     next(error);
@@ -71,7 +79,15 @@ export const getAllMoviesAdmin = async (
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
 
     const movies = await movieService.findAllMoviesAdmin(page, limit);
-    return res.status(200).json({ success: true, data: movies });
+    return res.status(200).json({
+      success: true,
+      data: movies,
+      pagination: {
+        currentPage: movies.currentPage,
+        totalPages: movies.totalPages,
+        totalBookings: movies.totalMovies,
+      },
+    });
   } catch (error) {
     logger.error(`Get all Movies Admin error: ${(error as Error).message}`);
     next(error);

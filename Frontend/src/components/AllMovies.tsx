@@ -93,6 +93,8 @@ export default function NewReleasesSection() {
     });
   }, [allMovies, filters]);
 
+  console.log(filteredMovies);
+
   // Pagination on filtered results
   const totalPages = Math.ceil(filteredMovies.length / ITEMS_PER_PAGE);
   const displayedMovies = useMemo(() => {

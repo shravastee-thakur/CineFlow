@@ -41,15 +41,29 @@ export const updateBookingStatus = async (
   ).exec();
 };
 
-export const findBookingsByUser = async (userId: string): Promise<any[]> => {
+export const findBookingsByUser = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<any[]> => {
+  const skip = (page - 1) * limit;
   return Booking.find({
     user: userId,
     status: { $in: ["cancelled", "confirmed"] },
   })
+    .skip(skip)
+    .limit(limit)
     .sort({ createdAt: -1 })
     .populate(bookingPopulateOptions)
     .lean()
     .exec();
+};
+
+export const countBookingsUser = (userId: string): Promise<number> => {
+  return Booking.countDocuments({
+    user: userId,
+    status: { $in: ["cancelled", "confirmed"] },
+  }).exec();
 };
 
 export const findBookingByBookingId = async (
@@ -70,10 +84,21 @@ export const findBookingById = async (
     .exec();
 };
 
-export const findAllBookings = async (): Promise<any[]> => {
+export const findAllBookings = async (
+  page: number = 1,
+  limit: number = 10,
+): Promise<any[]> => {
+  const skip = (page - 1) * limit;
+
   return Booking.find({ status: "confirmed" })
+    .skip(skip)
+    .limit(limit)
     .sort({ createdAt: -1 })
     .populate(bookingPopulateOptions)
     .lean()
     .exec();
+};
+
+export const countAllBookings = (): Promise<number> => {
+  return Booking.countDocuments({ status: "confirmed" }).exec();
 };

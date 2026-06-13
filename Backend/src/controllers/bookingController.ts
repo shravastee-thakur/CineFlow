@@ -114,11 +114,26 @@ export const getMyBookings = async (
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const bookings = await bookingService.findBookingsByUser(userId);
+    const rawPage = parseInt(req.query.page as string);
+    const rawLimit = parseInt(req.query.limit as string);
+
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
+
+    const bookings = await bookingService.findBookingsByUser(
+      userId,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       data: bookings,
+      pagination: {
+        currentPage: bookings.currentPage,
+        totalPages: bookings.totalPages,
+        totalBookings: bookings.totalBookings,
+      },
     });
   } catch (error) {
     logger.error(`Get My Bookings error: ${(error as Error).message}`);
@@ -132,11 +147,22 @@ export const getAllBookings = async (
   next: NextFunction,
 ) => {
   try {
-    const bookings = await bookingService.findAllBookings();
+    const rawPage = parseInt(req.query.page as string);
+    const rawLimit = parseInt(req.query.limit as string);
+
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 50);
+
+    const bookings = await bookingService.findAllBookings(page, limit);
 
     return res.status(200).json({
       success: true,
       data: bookings,
+      pagination: {
+        currentPage: bookings.currentPage,
+        totalPages: bookings.totalPages,
+        totalBookings: bookings.totalBookings,
+      },
     });
   } catch (error) {
     logger.error(`Get All Bookings error: ${(error as Error).message}`);

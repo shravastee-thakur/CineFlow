@@ -46,7 +46,15 @@ export const getAllTheaters = async (
 
     const theaters = await theaterService.findAllTheaters(page, limit);
 
-    return res.status(200).json({ success: true, data: theaters });
+    return res.status(200).json({
+      success: true,
+      data: theaters,
+      pagination: {
+        currentPage: theaters.currentPage,
+        totalPages: theaters.totalPages,
+        totalBookings: theaters.totalTheaters,
+      },
+    });
   } catch (error) {
     logger.error(`Get All Theaters error: ${(error as Error).message}`);
     next(error);
@@ -67,7 +75,15 @@ export const getAllTheatersAdmin = async (
 
     const theaters = await theaterService.findAllTheatersAdmin(page, limit);
 
-    return res.status(200).json({ success: true, data: theaters });
+    return res.status(200).json({
+      success: true,
+      data: theaters,
+      pagination: {
+        currentPage: theaters.currentPage,
+        totalPages: theaters.totalPages,
+        totalBookings: theaters.totalTheaters,
+      },
+    });
   } catch (error) {
     logger.error(`Get All Theaters Admin error: ${(error as Error).message}`);
     next(error);

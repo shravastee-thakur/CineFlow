@@ -2,23 +2,18 @@ import { ProfileSection } from "../../pages/User/UserProfilePage";
 
 interface ProfileSidebarProps {
   userInfo: any;
-  profile: any;
   activeSection: ProfileSection;
   onSectionChange: (section: ProfileSection) => void;
 }
 
 export default function ProfileSidebar({
   userInfo,
-  profile,
   activeSection,
   onSectionChange,
 }: ProfileSidebarProps) {
   const navItems: { id: ProfileSection; label: string }[] = [
     { id: "personal", label: "Personal Info" },
-    { id: "security", label: "Security" },
     { id: "bookings", label: "Booking History" },
-    { id: "payments", label: "Payment Methods" },
-    { id: "preferences", label: "Preferences" },
   ];
 
   return (
@@ -30,9 +25,6 @@ export default function ProfileSidebar({
           </div>
           <div>
             <p className="font-medium text-white">{userInfo?.username}</p>
-            <p className="text-xs text-slate-400">
-              Member since {profile?.memberSince}
-            </p>
           </div>
         </div>
         <nav className="space-y-1">

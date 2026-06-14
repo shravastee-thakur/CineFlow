@@ -1,50 +1,18 @@
 # CineFlow
-### Smart. Simple. Secure movie ticket bookings.
-A production-grade, TypeScript-first movie ticketing platform built with Node.js, Express, MongoDB, and Redis. Features atomic seat locking, background job processing, JWT authentication with refresh token rotation, and a layered architecture designed for scale.
+### A high performance, scalable movie ticket booking system engineered to handle massive concurrency, secure financial transactions, and complex physical inventory management. 
+Built with a strict Controller Service Repository architecture, this platform guarantees zero double bookings through atomic database operations and ensures financial safety through idempotent payment processing.
+
+<img width="1249" height="581" alt="Home" src="https://github.com/user-attachments/assets/9dd4fd56-4439-4739-882f-9e2d649e692f" />
+<img width="1249" height="579" alt="Screen" src="https://github.com/user-attachments/assets/89917ad3-602a-4c59-b344-f1af6a2868aa" />
+<img width="1247" height="589" alt="AddScreen" src="https://github.com/user-attachments/assets/508ef85b-fe70-46dc-a584-cde92e093a6c" />
+
+
+
 ## Features
-### Authentication & Authorization
-- JWT-based authentication with access/refresh token rotation
-- OTP-based two-factor authentication for login
-- Password reset flow with HMAC-signed tokens
-- Role-based access control (Admin/User)
-- Secure cookie handling with httpOnly, secure, and sameSite flags
-### Cinema Management
-- **Movies:** CRUD with soft deletes, status lifecycle (announced → releasing → released → ended), Cloudinary image upload
-- **Theaters:** Location-based queries with case-insensitive regex, city/state indexing
-- **Screens:** Nested seat layout with rows, seat types (standard/premium/recliner), per-seat pricing, and isBroken flag for maintenance
-- **Showtimes:** Temporal overlap detection with 15-minute cleaning buffer, duration-based end time calculation, atomic seat locking
-### Booking Engine
-- Atomic seat reservation using MongoDB $nin + $addToSet operators
-- Server-side price calculation from physical screen layout (client cannot manipulate cost)
-- Unique human-readable booking IDs (BMS-XXXXXXXX) for physical tickets
-- Status flow: pending → confirmed | failed | cancelled
-- Automatic seat release on payment failure or cancellation
-### Background Processing
-- BullMQ + Redis queue for asynchronous email delivery
-- Retry logic with exponential backoff for failed jobs
-- Rate limiting at worker level to respect email provider limits
-- Email templates: Welcome, OTP, Password Reset, Booking Confirmation
-### Observability
-- Winston logging with structured JSON output
-- Centralized error handling with ApiError class
-- Request logging middleware for debugging
-### Architecture
-**Layered Design Pattern:** Controller → Service → Repository → Model
-- **Controller:** Handles HTTP requests, validates input with Zod, extracts userId from JWT, returns standardized JSON responses
-- **Service:** Contains business logic, orchestrates repository calls, calculates prices, enforces business rules
-- **Repository:** Pure data access layer, executes Mongoose queries, returns hydrated documents
-- **Model:** Mongoose schemas with TypeScript interfaces, indexes, and middleware
-### Tech Stack
-- Backend: Node.js, Express.js, TypeScript
-- Database: MongoDB, Mongoose
-- Caching & Queues: Redis, BullMQ
-- Security: JWT, Bcrypt, Arcjet, Helmet, Mongo Sanitize
-- Validation: Zod
-- File Storage: Cloudinary, Multer
-- Logging: Winston
-- Utilities: Axios, NanoID
-### Key Architectural Decisions
-- Atomic Seat Locking
+### Architecture Highlights
+This application moves beyond basic CRUD operations to solve real world enterprise engineering challenges.
+### 1. Race Condition Free Seat Locking
+Instead of relying on complex distributed Redis locks for inventory, the booking engine leverages MongoDB atomic operators. By combining `$nin` (not in) with `$addToSet` in a single `findOneAndUpdate` query, the database physically rejects concurrent requests for the same seat at the storage engine level.
 ```javascript
 // Prevents double-booking without Redis locks
 Show.findOneAndUpdate(
@@ -57,25 +25,54 @@ Show.findOneAndUpdate(
 )
 // Returns null if any seat was already taken → Service throws 409 Conflict
 ```
-### Soft Deletes
-- All entities use isDeleted: boolean with { select: false } in schema. Queries automatically filter { isDeleted: { $ne: true } }. Preserves referential integrity for bookings and analytics.
-### DTO Mapping
-- Mongoose documents are mapped to plain TypeScript interfaces before reaching the controller. Guarantees no internal fields (refreshToken, isDeleted, Mongoose metadata) leak to the client.
-### Type-Safe Boundaries
-- Pick<IEntity, "field1" | "field2"> for creation payloads (allowlist, not denylist)
-- Omit<IEntity, "sensitive"> for outgoing DTOs
-- Zod schemas infer types that flow through controller → service → repository
-### Security
-Implemented Protections
-- Arcjet: Rate limiting, bot detection, attack prevention at the edge
-- Helmet: Secure HTTP headers (CSP, X-Frame-Options, etc.)
-- CORS: Configured for production frontend domain
-- JWT: Short-lived access tokens (15m) + long-lived refresh tokens (7d) with rotation
-- bcrypt: Password hashing with configurable salt rounds
-- HMAC: OTP and reset tokens hashed before Redis storage
-- mongo-sanitize: Prevents NoSQL injection via $where, $ne, etc.
-- Zod: Runtime validation of all incoming request bodies
-- Role Middleware: Server-side authorization checks on every protected route
+
+### 2. Idempotent Payment Processing
+The Stripe integration is built to handle network failures and duplicate requests gracefully. 
+* Atomic conditional updates ensure a payment status can only transition from `pending` to `completed` exactly once.
+* If a user pays after their 5 minute seat lock expires, the system automatically detects the state mismatch and triggers an immediate Stripe refund, preventing revenue leakage and customer support nightmares.
+
+### 3. Asynchronous Background Workflows
+Powered by BullMQ and Redis, the system offloads heavy tasks to background workers.
+* **Email Delivery:** Transactional emails (OTP, Booking Confirmations) are queued and processed asynchronously with automatic exponential backoff retries.
+* **Abandoned Cart Recovery:** When a booking is created, a delayed BullMQ job is scheduled for exactly 5 minutes in the future. If the payment is not confirmed by then, the worker automatically releases the seats back to the public inventory, even if the user closed their browser.
+
+### 4. Strict Data Boundaries
+The backend enforces a rigid separation between internal database models and external API responses. Data Transfer Objects (DTOs) and mapping functions ensure that sensitive internal identifiers and database mechanics never leak to the client.
+
+## Tech Stack
+
+### Frontend
+* **Framework:** React 18 with TypeScript
+* **Styling:** Tailwind CSS (Fully responsive, mobile first design)
+* **State Management:** Zustand (Persisted global state for complex admin filters)
+* **Networking:** Axios with centralized interceptors
+
+### Backend
+* **Runtime:** Node.js with Express.js
+* **Language:** TypeScript
+* **Database:** MongoDB with Mongoose ODM
+* **Validation:** Zod (Strict schema validation at the controller boundary)
+* **Authentication:** JWT (Access and HttpOnly Refresh Token rotation)
+
+### Infrastructure & Services
+* **Queue System:** BullMQ with Redis
+* **Payment Gateway:** Stripe Checkout
+* **Email Provider:** Brevo API
+* **Security:** Mongo Sanitize, CORS, Helmet
+
+## Core Features
+
+### Customer Experience
+* Browse movies by dynamic filters (Genre, Language, Format, Rating).
+* Interactive seat selection with real time visual feedback for premium, standard, and broken seats.
+* Secure 5 minute checkout timer with automatic session expiration.
+* Digital ticket generation with unique, human readable Booking IDs.
+
+### Admin Dashboard
+* **Theater Management:** Create and manage multiple theater locations.
+* **Dynamic Screen Builder:** Visual interface to design custom screen layouts, define row structures, set individual seat pricing, and mark broken seats.
+* **Show Scheduling:** Intelligent scheduling engine that automatically calculates end times (Movie Duration + 15 min cleaning buffer) and prevents overlapping shows on the same screen.
+* **Financial Ledger:** Paginated, filterable views of all confirmed transactions.
 
 <img width="790" height="583" alt="Concurrency test" src="https://github.com/user-attachments/assets/03d809bb-0d04-43fa-8ca7-da07e7df6e0c" />
 <img width="743" height="474" alt="withBullMQ" src="https://github.com/user-attachments/assets/8a7164d8-9c59-4037-b54d-e085ea00baeb" />

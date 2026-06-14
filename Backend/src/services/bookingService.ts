@@ -13,6 +13,7 @@ import {
   CreateBookingInput,
   UpdateBookingStatusInput,
 } from "../validators/bookingValidator.js";
+import logger from "../utils/logger.js";
 
 export interface BookingDto {
   _id: string;
@@ -143,6 +144,8 @@ export const createBooking = async (
 
   const booking = await bookingRepo.createBooking(finalPayload);
 
+  await queueService.scheduleSeatRelease(booking._id.toString(), 5 * 60 * 1000);
+
   return mapToBookingDto(booking);
 };
 
@@ -252,4 +255,13 @@ export const triggerBookingConfirmationEmail = async (
     rawBooking.seats,
     rawBooking.show.screen.theater.name,
   );
+};
+
+export const expirePendingBooking = async (mongoId: string) => {
+  const booking = await bookingRepo.findBookingById(mongoId);
+
+  if (booking && booking.status === "pending") {
+    await updateBookingStatus(mongoId, { status: "failed" });
+    logger.info(`Auto-expired pending booking: ${booking.bookingId}`);
+  }
 };

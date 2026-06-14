@@ -6,11 +6,11 @@ interface ProfileSidebarProps {
   onSectionChange: (section: ProfileSection) => void;
 }
 
-export default function ProfileSidebar({
+const ProfileSidebar = ({
   userInfo,
   activeSection,
   onSectionChange,
-}: ProfileSidebarProps) {
+}: ProfileSidebarProps) => {
   const navItems: { id: ProfileSection; label: string }[] = [
     { id: "personal", label: "Personal Info" },
     { id: "bookings", label: "Booking History" },
@@ -45,4 +45,6 @@ export default function ProfileSidebar({
       </div>
     </aside>
   );
-}
+};
+
+export default ProfileSidebar;

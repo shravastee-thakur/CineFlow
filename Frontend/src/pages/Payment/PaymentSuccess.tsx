@@ -27,7 +27,7 @@ const PaymentSuccess = () => {
   const [bookingDetails, setBookingDetails] = useState<BookingData | null>(
     null,
   );
-  const [isVerifying, setIsVerifying] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
@@ -73,20 +73,14 @@ const PaymentSuccess = () => {
     }
   }, [sessionId, bookingId, isVerified, navigate]);
 
-
   useEffect(() => {
     if (!isVerifying && countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (countdown === 0) {
-      navigate("/my-bookings");
+      navigate("/profile");
     }
   }, [countdown, isVerifying, navigate]);
-
-  const handleDownloadTicket = () => {
-    // Implement ticket download logic
-    toast.success("Downloading ticket...");
-  };
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString("en-US", {
@@ -228,14 +222,7 @@ const PaymentSuccess = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           <button
-            onClick={handleDownloadTicket}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl transition-colors"
-          >
-            <Download className="w-5 h-5" />
-            Download Ticket
-          </button>
-          <button
-            onClick={() => navigate("/my-bookings")}
+            onClick={() => navigate("/profile")}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 transition-colors"
           >
             <Ticket className="w-5 h-5" />

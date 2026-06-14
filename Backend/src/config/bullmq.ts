@@ -8,6 +8,10 @@ export interface EmailJobData {
   textContent?: string;
 }
 
+export interface BookingJobData {
+  bookingId: string;
+}
+
 const queueOptions: QueueOptions = {
   connection: redis,
   defaultJobOptions: {
@@ -22,3 +26,11 @@ const queueOptions: QueueOptions = {
 };
 
 export const mailQueue = new Queue<EmailJobData>("mailQueue", queueOptions);
+
+export const bookingQueue = new Queue<BookingJobData>("bookingQueue", {
+  connection: redis,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+});

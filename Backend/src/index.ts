@@ -4,6 +4,7 @@ import app from "./app.js";
 import { connectDb } from "./config/db.js";
 import logger from "./utils/logger.js";
 import "./workers/mailWorker.js";
+import "./workers/bookingWorker.js";
 
 connectDb();
 const port = env.PORT;

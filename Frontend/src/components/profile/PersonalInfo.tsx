@@ -2,7 +2,7 @@ interface PersonalInfoProps {
   userInfo: any;
 }
 
-export default function PersonalInfo({ userInfo }: PersonalInfoProps) {
+const PersonalInfo = ({ userInfo }: PersonalInfoProps) => {
   return (
     <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -23,4 +23,6 @@ export default function PersonalInfo({ userInfo }: PersonalInfoProps) {
       </div>
     </div>
   );
-}
+};
+
+export default PersonalInfo;

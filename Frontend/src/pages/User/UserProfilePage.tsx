@@ -10,7 +10,7 @@ import BookingHistory, {
 
 export type ProfileSection = "personal" | "bookings";
 
-export default function UserProfilePage() {
+const UserProfilePage = () => {
   const { userInfo, isVerified, clearAuth } = useAuthStore();
   const navigate = useNavigate();
 
@@ -81,4 +81,6 @@ export default function UserProfilePage() {
       </div>
     </div>
   );
-}
+};
+
+export default UserProfilePage;

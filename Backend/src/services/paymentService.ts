@@ -57,6 +57,18 @@ export const createPayment = async (
     throw new ApiError(400, "This booking is no longer pending payment");
   }
 
+  // IDEMPOTENCY: Prevent duplicate Stripe sessions
+  const existingPendingPayment =
+    await paymentRepo.findPendingPaymentByBookingId(bookingMongoId);
+  if (existingPendingPayment) {
+    const existingSession = await stripe.checkout.sessions.retrieve(
+      existingPendingPayment.stripeSessionId,
+    );
+    if (existingSession.status === "open" && existingSession.url) {
+      return { url: existingSession.url };
+    }
+  }
+
   const stripeAmount = Math.round(rawbooking.totalPrice * 100);
 
   const session = await stripe.checkout.sessions.create({
@@ -108,12 +120,43 @@ export const verifyPayment = async (sessionId: string): Promise<PaymentDto> => {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
 
   if (session.payment_status === "paid") {
-    const updatePayment = await paymentRepo.updatePayment(
+    const currentBooking = await bookingRepo.findBookingById(
+      payment.booking.toString(),
+    );
+
+    // If the booking expired and seats were released, refund the user immediately
+    if (
+      !currentBooking ||
+      currentBooking.status === "failed" ||
+      currentBooking.status === "cancelled"
+    ) {
+      if (session.payment_intent) {
+        await stripe.refunds.create({
+          payment_intent: session.payment_intent as string,
+        });
+      }
+
+      await paymentRepo.updatePaymentStatusAtomic(
+        payment._id.toString(),
+        "pending",
+        "failed",
+      );
+      throw new ApiError(
+        400,
+        "Booking expired before payment completed. A full refund has been issued.",
+      );
+    }
+
+    // IDEMPOTENCY: Atomic conditional update
+    const updatePayment = await paymentRepo.updatePaymentStatusAtomic(
       payment._id.toString(),
+      "pending",
       "completed",
     );
     if (!updatePayment) {
-      throw new ApiError(500, "Failed to update payment record in database");
+      const currentPayment =
+        await paymentRepo.findPaymentBySessionId(sessionId);
+      return mapToPaymentDto(currentPayment!);
     }
 
     const confirmedBooking = await bookingService.updateBookingStatus(
@@ -134,13 +177,15 @@ export const verifyPayment = async (sessionId: string): Promise<PaymentDto> => {
     return mapToPaymentDto(updatePayment);
   }
 
-  const failedPayment = await paymentRepo.updatePayment(
+  const failedPayment = await paymentRepo.updatePaymentStatusAtomic(
     payment._id.toString(),
+    "pending",
     "failed",
   );
 
   if (!failedPayment) {
-    throw new ApiError(500, "Failed to update payment record in database");
+    const currentPayment = await paymentRepo.findPaymentBySessionId(sessionId);
+    return mapToPaymentDto(currentPayment!);
   }
 
   await bookingService.updateBookingStatus(payment.booking.toString(), {

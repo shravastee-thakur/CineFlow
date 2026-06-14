@@ -1,4 +1,9 @@
-import { mailQueue, EmailJobData } from "../config/bullmq.js";
+import {
+  mailQueue,
+  EmailJobData,
+  bookingQueue,
+  BookingJobData,
+} from "../config/bullmq.js";
 import { JobsOptions } from "bullmq";
 
 export const sendEmailJob = async (
@@ -91,4 +96,17 @@ export const sendBookingConfirmationEmail = async (
     htmlContent,
     textContent: `Booking Confirmed! ID: ${bookingId}, Movie: ${movieTitle}, Seats: ${seatsList}`,
   });
+};
+
+export const scheduleSeatRelease = async (
+  bookingId: string,
+  delayMs: number,
+) => {
+  return bookingQueue.add(
+    "releaseExpiredSeats",
+    { bookingId },
+    {
+      delay: delayMs,
+    },
+  );
 };

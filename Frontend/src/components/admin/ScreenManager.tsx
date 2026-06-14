@@ -32,7 +32,7 @@ interface TheaterOption {
   name: string;
 }
 
-export default function ScreenManager() {
+const ScreenManager = () => {
   const { selectedTheaterId, setSelectedTheater } = useShowStore();
 
   const [screens, setScreens] = useState<Screen[]>([]);
@@ -52,7 +52,7 @@ export default function ScreenManager() {
   const fetchTheaters = useCallback(async () => {
     try {
       const res = await api.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheatersAdmin?page=1&limit=100`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheaters?page=1&limit=100`,
       );
 
       const theatersData = res.data.data.theater;
@@ -170,9 +170,11 @@ export default function ScreenManager() {
     try {
       if (editing) {
         const res = await api.put(
-          `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/updateScreen//${editing._id}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/v1/screens/updateScreen/${editing._id}`,
           form,
         );
+        console.log("update", res);
+
         if (res.data.success) {
           toast.success(res.data.message, {
             style: {
@@ -724,4 +726,6 @@ export default function ScreenManager() {
       )}
     </div>
   );
-}
+};
+
+export default ScreenManager;

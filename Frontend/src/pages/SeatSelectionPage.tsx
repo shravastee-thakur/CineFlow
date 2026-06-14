@@ -46,7 +46,7 @@ interface Show {
 
 type SeatStatus = "available" | "selected" | "booked" | "broken" | "empty";
 
-export default function SeatSelectionPage() {
+const SeatSelectionPage = () => {
   const { showId } = useParams<{ showId: string }>();
   const navigate = useNavigate();
 
@@ -376,4 +376,6 @@ export default function SeatSelectionPage() {
       </div>
     </div>
   );
-}
+};
+
+export default SeatSelectionPage;

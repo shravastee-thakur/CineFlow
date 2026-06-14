@@ -11,7 +11,7 @@ interface LoginFormState {
   password: string;
 }
 
-export default function LoginPage() {
+const LoginPage = () => {
   const { setUserId } = useAuthStore();
   const [form, setForm] = useState<LoginFormState>({ email: "", password: "" });
   const [touched, setTouched] = useState<Record<keyof LoginFormState, boolean>>(
@@ -212,4 +212,6 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

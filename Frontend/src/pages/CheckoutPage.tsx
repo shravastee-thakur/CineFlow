@@ -77,6 +77,7 @@ const CheckoutPage = () => {
     return getRemainingTime(checkoutData.createdAt);
   });
   const [isExpired, setIsExpired] = useState(timeLeft === 0);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!checkoutData) {
@@ -158,7 +159,9 @@ const CheckoutPage = () => {
   console.log(checkoutData);
 
   const handleProceedToPayment = async () => {
-    if (!checkoutData) return;
+    if (!checkoutData || isProcessing) return;
+
+    setIsProcessing(true);
     try {
       const res = await api.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/payments/payment`,
@@ -173,6 +176,7 @@ const CheckoutPage = () => {
       toast.error(err.response?.data?.message, {
         style: { borderRadius: "10px", background: "#FFC7C7", color: "#333" },
       });
+      setIsProcessing(false);
     }
   };
 
@@ -281,11 +285,15 @@ const CheckoutPage = () => {
 
               <button
                 onClick={handleProceedToPayment}
-                disabled={isExpired}
+                disabled={isExpired || isProcessing}
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 disabled:cursor-not-allowed text-slate-950 font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <Ticket className="w-5 h-5" />
-                {isExpired ? "Expired" : "Proceed to Payment"}
+                {isExpired
+                  ? "Expired"
+                  : isProcessing
+                    ? "Processing..."
+                    : "Proceed to Payment"}
               </button>
 
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">

@@ -56,7 +56,7 @@ const getStatusColor = (status: Booking["status"]): string => {
   }
 };
 
-export default function BookingHistory({ bookings }: BookingHistoryProps) {
+const BookingHistory = ({ bookings }: BookingHistoryProps) => {
   const [showAll, setShowAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -226,4 +226,6 @@ export default function BookingHistory({ bookings }: BookingHistoryProps) {
       )}
     </div>
   );
-}
+};
+
+export default BookingHistory;

@@ -4,7 +4,7 @@ import { useAuthStore } from "../store/authStore";
 import api from "../utils/axiosInstance";
 import toast from "react-hot-toast";
 
-export default function Navbar() {
+const Navbar = () => {
   const {
     role,
     isVerified,
@@ -124,32 +124,6 @@ export default function Navbar() {
             </span>
           </span>
         </Link>
-
-        {/* Center: Search (Desktop only, compact) */}
-        <div className="hidden md:flex flex-1 max-w-xs lg:max-w-sm mx-auto">
-          <div className="relative w-full">
-            <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="search"
-              placeholder="Search..."
-              className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 rounded-lg py-2 pl-9 pr-3 text-sm border border-slate-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -335,30 +309,6 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-slate-800 border-t border-slate-700 shadow-xl z-40">
           <div className="px-4 py-4 space-y-4">
-            {/* Mobile Search */}
-            <div className="relative">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="search"
-                placeholder="Search movies..."
-                className="w-full bg-slate-700 text-slate-100 placeholder-slate-400 rounded-lg py-2 pl-9 pr-3 text-sm border border-slate-600 focus:border-amber-500 focus:outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
             {/* Mobile Location */}
             <div className="flex items-center justify-between py-2 border-t border-slate-700">
               <span className="text-sm text-slate-400">Location</span>
@@ -422,4 +372,6 @@ export default function Navbar() {
       )}
     </nav>
   );
-}
+};
+
+export default Navbar;

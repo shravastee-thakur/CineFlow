@@ -136,6 +136,8 @@ const BookTicketsPage = () => {
                 );
 
                 if (showUTC !== selectedUTC) return false;
+
+                return true;
               });
 
               return {

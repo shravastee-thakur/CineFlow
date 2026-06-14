@@ -85,7 +85,7 @@ const ShowManager = () => {
   const fetchTheaters = useCallback(async () => {
     try {
       const res = await api.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheatersAdmin`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/theaters/getAllTheaters`,
         { params: { page: 1, limit: 100 } },
       );
       const data = res.data.data?.theater || [];

@@ -44,7 +44,7 @@ const FILTER_OPTIONS = {
 const ITEMS_PER_PAGE = 10;
 const INITIAL_DISPLAY = 5;
 
-export default function NewReleasesSection() {
+const NewReleasesSection = () => {
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -316,4 +316,6 @@ export default function NewReleasesSection() {
       </div>
     </section>
   );
-}
+};
+
+export default NewReleasesSection;

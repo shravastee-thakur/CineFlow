@@ -18,7 +18,7 @@ interface Movie {
   status: "coming_soon" | "now_showing" | "ended";
 }
 
-export default function MovieDetailsPage() {
+const MovieDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [movie, setMovie] = useState<Movie | null>(null);
@@ -56,9 +56,6 @@ export default function MovieDetailsPage() {
       day: "numeric",
     });
   };
-
-  // Convert rating from 5-scale to 10-scale for display
-  //   const displayRating = movie ? (movie.rating * 2).toFixed(1) : "0";
 
   if (isLoading) {
     return (
@@ -169,4 +166,6 @@ export default function MovieDetailsPage() {
       </div>
     </div>
   );
-}
+};
+
+export default MovieDetailsPage;

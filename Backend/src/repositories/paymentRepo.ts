@@ -20,13 +20,20 @@ export const findPaymentBySessionId = async (
   return Payment.findOne({ stripeSessionId: sessionId }).exec();
 };
 
-export const updatePayment = async (
-  paymentId: string,
-  status: IPayment["status"],
+export const findPendingPaymentByBookingId = async (
+  bookingId: string,
 ): Promise<PaymentDocument | null> => {
-  return Payment.findByIdAndUpdate(
-    paymentId,
-    { status },
+  return Payment.findOne({ booking: bookingId, status: "pending" }).exec();
+};
+
+export const updatePaymentStatusAtomic = async (
+  paymentId: string,
+  expectedStatus: IPayment["status"],
+  newStatus: IPayment["status"],
+): Promise<PaymentDocument | null> => {
+  return Payment.findOneAndUpdate(
+    { _id: paymentId, status: expectedStatus },
+    { status: newStatus },
     { new: true, runValidators: true },
   ).exec();
 };

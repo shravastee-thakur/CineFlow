@@ -33,7 +33,7 @@ const TRENDING_MOVIES: MovieCardData[] = [
   },
 ];
 
-export default function HorizontalMovieCarousel() {
+const HorizontalMovieCarousel = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -181,4 +181,6 @@ export default function HorizontalMovieCarousel() {
       </div>
     </section>
   );
-}
+};
+
+export default HorizontalMovieCarousel;

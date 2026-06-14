@@ -12,7 +12,7 @@ interface Theater {
   isDeleted: boolean;
 }
 
-export default function TheaterManager() {
+const TheaterManager = () => {
   const { role } = useAuthStore();
   const [theaters, setTheaters] = useState<Theater[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -413,4 +413,6 @@ export default function TheaterManager() {
       )}
     </div>
   );
-}
+};
+
+export default TheaterManager;

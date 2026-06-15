@@ -2,6 +2,10 @@ import { Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import MainLayout from "./components/MainLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+import PublicRoute from "./components/PublicRoute";
+
 import RegisterPage from "./pages/User/Register";
 import LoginPage from "./pages/User/Login";
 import VerifyOTPPage from "./pages/User/VerifyLogin";
@@ -17,35 +21,124 @@ import SeatSelectionPage from "./pages/SeatSelectionPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentSuccess from "./pages/Payment/PaymentSuccess";
 import PaymentFailure from "./pages/Payment/PaymentFailure";
+import NotFoundPage from "./pages/NotFoundPage";
 
 const App = () => {
   return (
     <div>
       <Toaster position="top-right" reverseOrder={false} />
       <Routes>
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/verifyOtp" element={<VerifyOTPPage />} />
-        <Route path="/forget-password" element={<ForgetPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        {/* Public Auth Routes */}
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verifyOtp"
+          element={
+            <PublicRoute>
+              <VerifyOTPPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forget-password"
+          element={
+            <PublicRoute>
+              <ForgetPasswordPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPasswordPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Payment Routes */}
         <Route
           path="/payment-success/:bookingId"
-          element={<PaymentSuccess />}
+          element={
+            <ProtectedRoute>
+              <PaymentSuccess />
+            </ProtectedRoute>
+          }
         />
-        <Route path="/payment-failure" element={<PaymentFailure />} />
+        <Route
+          path="/payment-failure"
+          element={
+            <ProtectedRoute>
+              <PaymentFailure />
+            </ProtectedRoute>
+          }
+        />
 
         <Route element={<MainLayout />}>
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/profile" element={<UserProfilePage />} />
-          <Route path="/admin" element={<AdminPage />} />
           <Route path="/movie/:id" element={<MovieDetailsPage />} />
-          <Route path="/book/:id" element={<BookTicketsPage />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/book/:id"
+            element={
+              <ProtectedRoute>
+                <BookTicketsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/seat-selection/:showId"
-            element={<SeatSelectionPage />}
+            element={
+              <ProtectedRoute>
+                <SeatSelectionPage />
+              </ProtectedRoute>
+            }
           />
-          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Route - require admin role */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminPage />
+              </AdminRoute>
+            }
+          />
         </Route>
+
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   );

@@ -34,6 +34,7 @@ api.interceptors.response.use(
 
         // Update Zustand with the new accessToken
         useAuthStore.getState().setAccessToken(res.data.accessToken);
+        useAuthStore.getState().setIsVerified(true);
 
         // Retry the original request with the new token
         error.config.headers.Authorization = `Bearer ${res.data.accessToken}`;

@@ -10,6 +10,7 @@ const envSchema = z.object({
   MONGO_URL: z.string().url("MONGO_URI must be a valid URL"),
   HMAC_SECRET: z.string().min(10, "HMAC_SECRET is required and must be secure"),
   FRONTEND_URL: z.string().url("FRONTEND_URL must be a valid URL"),
+  NETLIFY_URL: z.string().url("NETLIFY_URL must be a valid URL"),
 
   ACCESS_SECRET: z.string().min(1),
   REFRESH_SECRET: z.string().min(1),

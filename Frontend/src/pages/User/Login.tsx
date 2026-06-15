@@ -208,6 +208,10 @@ const LoginPage = () => {
               Create one
             </Link>
           </p>
+
+          <p className="text-left text-sm mt-4 text-gray-600">
+            Admin : shratestcode@gmail.com <br /> password : shra6789
+          </p>
         </div>
       </div>
     </div>

@@ -183,7 +183,7 @@ const MovieManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });
@@ -197,7 +197,7 @@ const MovieManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });

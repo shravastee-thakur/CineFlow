@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Edit2, Trash2, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Edit2, Trash2, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../utils/axiosInstance";
 import { useAuthStore } from "../../store/authStore";
@@ -68,7 +68,7 @@ const TheaterManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });
@@ -82,7 +82,7 @@ const TheaterManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });
@@ -116,7 +116,7 @@ const TheaterManager = () => {
         toast.success(res.data.message, {
           style: {
             borderRadius: "10px",
-            background: "#AAFFC7",
+            background: "#F0E76F",
             color: "#333",
           },
         });
@@ -145,7 +145,7 @@ const TheaterManager = () => {
         toast.success(res.data.message, {
           style: {
             borderRadius: "10px",
-            background: "#AAFFC7",
+            background: "#F0E76F",
             color: "#333",
           },
         });

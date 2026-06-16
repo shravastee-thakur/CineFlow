@@ -38,7 +38,7 @@ interface Screen {
 
 const toastSuccessStyle = {
   borderRadius: "10px",
-  background: "#AAFFC7",
+  background: "#F0E76F",
   color: "#333",
 };
 const toastErrorStyle = {

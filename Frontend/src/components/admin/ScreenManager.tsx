@@ -179,7 +179,7 @@ const ScreenManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });
@@ -193,7 +193,7 @@ const ScreenManager = () => {
           toast.success(res.data.message, {
             style: {
               borderRadius: "10px",
-              background: "#AAFFC7",
+              background: "#F0E76F",
               color: "#333",
             },
           });
@@ -240,7 +240,7 @@ const ScreenManager = () => {
         toast.success(res.data.message, {
           style: {
             borderRadius: "10px",
-            background: "#AAFFC7",
+            background: "#AF0E76F",
             color: "#333",
           },
         });

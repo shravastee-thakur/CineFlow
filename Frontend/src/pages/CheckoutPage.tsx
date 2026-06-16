@@ -145,7 +145,7 @@ const CheckoutPage = () => {
 
       if (res.data.success) {
         toast.success("Booking cancelled! Your seats have been released.", {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
       }
     } catch (err: any) {

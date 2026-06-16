@@ -81,7 +81,7 @@ export default function PaymentSuccess() {
 
         setBookingDetails(bookingRes.data.data);
         toast.success("Payment verified successfully!", {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
       } catch (err: any) {
         console.error("Verification error:", err);

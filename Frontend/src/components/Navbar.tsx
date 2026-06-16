@@ -18,7 +18,7 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAuthMenuOpen, setIsAuthMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+
   const [cities, setCities] = useState<string[]>([]);
   const [isCitiesLoading, setIsCitiesLoading] = useState(true);
 
@@ -89,7 +89,7 @@ const Navbar = () => {
       );
       if (res.data.success) {
         toast.success(res.data.message, {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
       }
     } catch (err: any) {

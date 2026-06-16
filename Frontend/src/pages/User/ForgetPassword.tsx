@@ -45,7 +45,7 @@ const ForgetPasswordPage = () => {
       if (res.data.success) {
         setIsSubmitted(true);
         toast.success(res.data.message, {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
       }
     } catch (err: any) {

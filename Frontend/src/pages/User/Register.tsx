@@ -59,7 +59,7 @@ const RegisterPage = () => {
       );
       if (res.data.success) {
         toast.success(res.data.message, {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
         navigate("/login");
       }

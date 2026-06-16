@@ -84,7 +84,7 @@ const VerifyOTPPage = () => {
         setUserInfo(res.data.user);
         setRole(res.data.user.role);
         toast.success(res.data.message, {
-          style: { borderRadius: "10px", background: "#AAFFC7", color: "#333" },
+          style: { borderRadius: "10px", background: "#F0E76F", color: "#333" },
         });
         navigate("/");
       }

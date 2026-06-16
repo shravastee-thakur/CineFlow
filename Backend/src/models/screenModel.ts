@@ -2,7 +2,7 @@ import mongoose, { Schema, Model } from "mongoose";
 
 export interface ISeat {
   seatNumber: string;
-  seatType: "standard" | "premium" | "recliner";
+  seatType: "standard" | "premium" | "recliner" | "empty";
   price: number;
   isBroken: boolean;
 }

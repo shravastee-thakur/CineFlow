@@ -12,23 +12,14 @@ import screenRoutes from "./routes/screenRoutes.js";
 import showRoutes from "./routes/showRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutea.js";
-import { ApiError } from "./utils/apiError.js";
 
 const app = express();
-
-const allowedOrigins = [env.FRONTEND_URL, env.NETLIFY_URL];
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new ApiError(401, "Not allowed by CORS"));
-      }
-    },
+    origin: env.FRONTEND_URL,
     credentials: true,
   }),
 );

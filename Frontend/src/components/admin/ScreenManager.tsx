@@ -7,7 +7,7 @@ import { useShowStore } from "../../store/showStore";
 // Interfaces must exactly match backend enums
 interface Seat {
   seatNumber: string;
-  seatType: "standard" | "premium" | "recliner";
+  seatType: "standard" | "premium" | "recliner" | "empty";
   price: number;
   isBroken: boolean;
 }

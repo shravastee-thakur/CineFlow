@@ -1,9 +1,4 @@
-import {
-  mailQueue,
-  EmailJobData,
-  bookingQueue,
-  BookingJobData,
-} from "../config/bullmq.js";
+import { mailQueue, EmailJobData, bookingQueue } from "../config/bullmq.js";
 import { JobsOptions } from "bullmq";
 
 export const sendEmailJob = async (

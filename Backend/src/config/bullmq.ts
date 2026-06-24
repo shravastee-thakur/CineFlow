@@ -1,6 +1,7 @@
 import { Queue, QueueOptions } from "bullmq";
 import { redis } from "./redis.js";
 
+
 export interface EmailJobData {
   to: string;
   subject: string;

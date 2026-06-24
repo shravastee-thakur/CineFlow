@@ -2,9 +2,8 @@
 ### A high performance, scalable movie ticket booking system engineered to handle massive concurrency, secure financial transactions, and complex physical inventory management. 
 Built with a strict Controller Service Repository architecture, this platform guarantees zero double bookings through atomic database operations and ensures financial safety through idempotent payment processing.
 
-<img width="1249" height="581" alt="Home" src="https://github.com/user-attachments/assets/9dd4fd56-4439-4739-882f-9e2d649e692f" />
-<img width="1249" height="579" alt="Screen" src="https://github.com/user-attachments/assets/89917ad3-602a-4c59-b344-f1af6a2868aa" />
-<img width="1247" height="589" alt="AddScreen" src="https://github.com/user-attachments/assets/508ef85b-fe70-46dc-a584-cde92e093a6c" />
+
+https://github.com/user-attachments/assets/15684c43-d061-4963-83f5-bbb36500d8b8
 
 
 

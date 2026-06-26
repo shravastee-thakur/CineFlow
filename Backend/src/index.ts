@@ -6,8 +6,12 @@ import logger from "./utils/logger.js";
 // import "./workers/mailWorker.js";
 // import "./workers/bookingWorker.js";
 
+import { startBookingCleanupCron } from "./crons/bookingCleanup.js";
+
 connectDb();
 const port = env.PORT;
+
+startBookingCleanupCron();
 
 app.listen(port, () => {
   logger.info(`Server is running on port: http://localhost:${port}`);

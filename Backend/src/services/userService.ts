@@ -10,7 +10,7 @@ import {
   TokenPayload,
   verifyRefreshToken,
 } from "../utils/jwt.js";
-import * as queueService from "../services/queueService.js";
+import * as emailService from "../services/emailService.js";
 
 export interface RegisterInput extends CreateUserData {}
 export interface LoginInput {
@@ -183,7 +183,7 @@ export const forgetPassword = async (email: string) => {
 
   const resetLink = `${env.FRONTEND_URL}/reset-password?token=${resetToken}&userId=${user._id}`;
 
-  await queueService.sendPasswordResetEmail(email, resetLink);
+  emailService.sendPasswordResetEmail(email, resetLink);
 };
 
 export const resetPassword = async (

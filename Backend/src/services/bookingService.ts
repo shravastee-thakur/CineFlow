@@ -1,7 +1,7 @@
 import * as bookingRepo from "../repositories/bookingRepo.js";
 import * as showRepo from "../repositories/showRepo.js";
 import * as screenRepo from "../repositories/screenRepo.js";
-import * as queueService from "../services/queueService.js";
+import * as emailService from "../services/emailService.js";
 import {
   BookingDocument,
   CreateBookingData,
@@ -144,7 +144,7 @@ export const createBooking = async (
 
   const booking = await bookingRepo.createBooking(finalPayload);
 
-  await queueService.scheduleSeatRelease(booking._id.toString(), 5 * 60 * 1000);
+  // await queueService.scheduleSeatRelease(booking._id.toString(), 5 * 60 * 1000);
 
   return mapToBookingDto(booking);
 };
@@ -247,7 +247,7 @@ export const triggerBookingConfirmationEmail = async (
     },
   );
 
-  await queueService.sendBookingConfirmationEmail(
+  emailService.sendBookingConfirmationEmail(
     rawBooking.user.email,
     rawBooking.bookingId,
     rawBooking.show.movie.title,

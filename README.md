@@ -30,10 +30,11 @@ The Stripe integration is built to handle network failures and duplicate request
 * Atomic conditional updates ensure a payment status can only transition from `pending` to `completed` exactly once.
 * If a user pays after their 5 minute seat lock expires, the system automatically detects the state mismatch and triggers an immediate Stripe refund, preventing revenue leakage and customer support nightmares.
 
-### 3. Asynchronous Background Workflows
-Powered by BullMQ and Redis, the system offloads heavy tasks to background workers.
-* **Email Delivery:** Transactional emails (OTP, Booking Confirmations) are queued and processed asynchronously with automatic exponential backoff retries.
-* **Abandoned Cart Recovery:** When a booking is created, a delayed BullMQ job is scheduled for exactly 5 minutes in the future. If the payment is not confirmed by then, the worker automatically releases the seats back to the public inventory, even if the user closed their browser.
+### 3. Cost Optimized Background Workflows
+Initially architected with BullMQ, the background job system was deliberately reengineered to eliminate idle polling costs and memory overhead on constrained cloud environments.
+* **Abandoned Cart Recovery**: A lightweight Node cron job polls MongoDB every 60 seconds to release expired seat locks, completely removing the need for a persistent, memory heavy message broker.
+* **Transactional Emails**: Utilizes a fire and forget pattern with the Brevo API, offloading queue management and retry logic directly to the email provider without blocking the main thread.
+* **Atomic Security**: Retains Redis exclusively for high speed, atomic Lua script execution to manage OTP and password reset token lifecycles with zero race conditions.
 
 ### 4. Strict Data Boundaries
 The backend enforces a rigid separation between internal database models and external API responses. Data Transfer Objects (DTOs) and mapping functions ensure that sensitive internal identifiers and database mechanics never leak to the client.

@@ -7,12 +7,18 @@ import { rateLimiterMiddleware } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/register", sanitizeMiddleware, userController.register);
+router.post(
+  "/register",
+  sanitizeMiddleware,
+  rateLimiterMiddleware(3, 60),
+  userController.register,
+);
 
 router.post(
   "/loginStepOne",
   securityMiddleware,
   sanitizeMiddleware,
+  rateLimiterMiddleware(3, 60),
   userController.loginStepOne,
 );
 
@@ -36,6 +42,7 @@ router.post(
 router.post(
   "/reset-password",
   sanitizeMiddleware,
+  rateLimiterMiddleware(3, 60),
   userController.resetPassword,
 );
 router.post("/logout", authenticate, userController.logout);

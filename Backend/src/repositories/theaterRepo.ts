@@ -91,7 +91,7 @@ export const restoreTheater = async (
   return Theater.findByIdAndUpdate(
     theaterId,
     { isDeleted: false },
-    { new: true, runValidators: true },
+    { returnDocument: "after", runValidators: true },
   ).exec();
 };
 

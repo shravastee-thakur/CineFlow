@@ -34,6 +34,6 @@ export const updatePaymentStatusAtomic = async (
   return Payment.findOneAndUpdate(
     { _id: paymentId, status: expectedStatus },
     { status: newStatus },
-    { new: true, runValidators: true },
+    { returnDocument: 'after', runValidators: true },
   ).exec();
 };

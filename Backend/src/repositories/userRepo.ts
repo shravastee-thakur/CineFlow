@@ -21,4 +21,4 @@ export const updateUser = (
   userId: string,
   update: Partial<IUser>,
 ): Promise<UserDocument | null> =>
-  User.findByIdAndUpdate(userId, update, { new: true });
+  User.findByIdAndUpdate(userId, update, { returnDocument: "after" });

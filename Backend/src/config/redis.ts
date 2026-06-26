@@ -7,6 +7,8 @@ if (!env.IOREDIS_URL) {
 
 const redisOptions: RedisOptions = {
   maxRetriesPerRequest: null,
+  enableOfflineQueue: false,
+  lazyConnect: true,
 };
 
 export const redis = new Redis(env.IOREDIS_URL, redisOptions);

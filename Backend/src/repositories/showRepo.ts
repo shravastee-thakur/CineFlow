@@ -121,7 +121,7 @@ export const lockSeats = async (
     {
       $addToSet: { bookedSeats: { $each: seatsToLock } },
     },
-    { new: true },
+    { returnDocument: 'after' },
   ).exec();
 };
 
@@ -137,6 +137,6 @@ export const unlockSeats = async (
     },
     { $pullAll: { bookedSeats: seatsToRemove } },
 
-    { new: true },
+    { returnDocument: 'after' },
   ).exec();
 };

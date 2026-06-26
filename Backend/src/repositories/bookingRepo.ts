@@ -37,7 +37,7 @@ export const updateBookingStatus = async (
   return Booking.findByIdAndUpdate(
     bookingId,
     { status: newStatus },
-    { new: true, runValidators: true },
+    { returnDocument: 'after', runValidators: true },
   ).exec();
 };
 
